@@ -4,8 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SumZero - Strategic Polyomino Game</title>
-    <meta name="description" content="A two-player strategy game with polyomino pieces">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <meta name="description" content="Strategic pattern-building polyomino game with comprehensive scoring system">
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="background-color" content="#667eea">
+
+    <!-- iOS PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SumZero">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Windows PWA Meta Tags -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="msapplication-navbutton-color" content="#667eea">
+
+    <!-- Standard Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+    <link rel="shortcut icon" href="/icons/icon-32x32.png">
     <style>
         * {
             margin: 0;
@@ -40,5 +60,68 @@
 <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('SumZero PWA: Service Worker registered successfully:', registration.scope);
+
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            console.log('SumZero PWA: New version available');
+                        });
+                    })
+                    .catch(function(error) {
+                        console.log('SumZero PWA: Service Worker registration failed:', error);
+                    });
+            });
+
+            // Listen for app installation prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                console.log('SumZero PWA: Install prompt available');
+                // Prevent Chrome 67 and earlier from automatically showing the prompt
+                e.preventDefault();
+                // Stash the event so it can be triggered later
+                deferredPrompt = e;
+
+                // Show custom install button/banner if desired
+                showInstallPromotion();
+            });
+
+            // Handle successful app installation
+            window.addEventListener('appinstalled', (evt) => {
+                console.log('SumZero PWA: App was installed successfully');
+                hideInstallPromotion();
+            });
+
+            function showInstallPromotion() {
+                // You can add a custom install banner here
+                console.log('SumZero PWA: Ready to install');
+            }
+
+            function hideInstallPromotion() {
+                console.log('SumZero PWA: Install promotion hidden');
+            }
+
+            // Function to trigger install (can be called from a button)
+            window.promptInstall = function() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('SumZero PWA: User accepted the install prompt');
+                        } else {
+                            console.log('SumZero PWA: User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            };
+        }
+    </script>
 </body>
 </html>
