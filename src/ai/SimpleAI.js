@@ -41,6 +41,8 @@ export class SimpleAI {
       // Apply difficulty-based decision making
       if (difficulty === 'easy') {
         return this.makeEasyDraftDecision(affordablePieces)
+      } else if (difficulty === 'medium') {
+        return this.makeMediumDraftDecision(affordablePieces, gameState, playerId)
       } else if (difficulty === 'hard') {
         return this.makeHardDraftDecision(affordablePieces, gameState, playerId)
       } else {
@@ -94,9 +96,9 @@ export class SimpleAI {
   }
 
   /**
-   * Hard AI: Master-level strategy with deep analysis
+   * Medium AI: Previous hard difficulty level with strategic analysis
    */
-  static makeHardDraftDecision(affordablePieces, gameState, playerId) {
+  static makeMediumDraftDecision(affordablePieces, gameState, playerId) {
     let bestPiece = null
     let bestScore = 0
 
@@ -134,6 +136,94 @@ export class SimpleAI {
     }
 
     return bestPiece
+  }
+
+  /**
+   * Hard AI: RUTHLESS master-level strategy with maximum aggression
+   */
+  static makeHardDraftDecision(affordablePieces, gameState, playerId) {
+    let bestPiece = null
+    let bestScore = 0
+
+    for (const pieceId of affordablePieces) {
+      const piece = pieceLibrary.get(pieceId)
+      let score = piece.relCells.length / piece.cost // Base efficiency
+
+      // MASSIVE bonus for strategic piece sizes (higher than medium)
+      if (piece.relCells.length >= 5) {
+        score += 5.0  // INCREASED from 3.5
+      } else if (piece.relCells.length >= 3) {
+        score += 2.5  // INCREASED from 1.5
+      }
+
+      // ENHANCED shape analysis for maximum versatility
+      const shapeFactor = this.calculateShapeComplexity(piece.relCells)
+      score += shapeFactor * 1.2  // INCREASED from 0.8
+
+      // MASSIVE pattern formation potential bonus
+      const patternScore = this.calculatePatternPotential(piece.relCells)
+      score += patternScore * 2.0  // INCREASED from 1.2
+
+      // ENHANCED coverage optimization
+      const coverage = this.calculateCoverageScore(piece.relCells)
+      score += coverage * 0.8  // INCREASED from 0.5
+
+      // RUTHLESS opponent denial - prioritize pieces that deny opponent
+      const denyValue = this.calculateDenyValue(piece, gameState)
+      score += denyValue * 2.0  // INCREASED from 1.0
+
+      // NEW: SABOTAGE BONUS - prioritize pieces that can disrupt opponent
+      if (piece.relCells.length >= 4) {
+        score += this.calculateSabotageValue(piece, gameState) * 1.5
+      }
+
+      // NEW: TERRITORIAL DOMINANCE - prioritize pieces that control area
+      score += this.calculateTerritorialValue(piece) * 1.0
+
+      if (score > bestScore) {
+        bestScore = score
+        bestPiece = pieceId
+      }
+    }
+
+    return bestPiece
+  }
+
+  /**
+   * Calculate sabotage value for disrupting opponent
+   */
+  static calculateSabotageValue(piece, gameState) {
+    let sabotageValue = 0
+
+    // Larger pieces have more sabotage potential
+    sabotageValue += piece.relCells.length * 0.3
+
+    // Complex shapes are better for blocking
+    const complexity = this.calculateShapeComplexity(piece.relCells)
+    sabotageValue += complexity * 0.2
+
+    // L-shapes and branching pieces are excellent for disruption
+    if (this.hasCornerFormation(piece.relCells)) {
+      sabotageValue += 1.0
+    }
+
+    return sabotageValue
+  }
+
+  /**
+   * Calculate territorial control value
+   */
+  static calculateTerritorialValue(piece) {
+    let territorialValue = 0
+
+    // Larger pieces control more territory
+    territorialValue += piece.relCells.length * 0.2
+
+    // Wide-spread pieces are better for territory control
+    const coverage = this.calculateCoverageScore(piece.relCells)
+    territorialValue += coverage * 0.5
+
+    return territorialValue
   }
 
   /**
@@ -319,6 +409,8 @@ export class SimpleAI {
       // Apply difficulty-based placement strategy
       if (difficulty === 'easy') {
         return this.makeEasyPlacementDecision(legalMoves, gameState)
+      } else if (difficulty === 'medium') {
+        return this.makeMediumPlacementDecision(legalMoves, gameState)
       } else if (difficulty === 'hard') {
         return this.makeHardPlacementDecision(legalMoves, gameState)
       } else {
@@ -365,9 +457,9 @@ export class SimpleAI {
   }
 
   /**
-   * Hard AI: Master-level placement with deep strategic analysis
+   * Medium AI: Previous hard difficulty strategic placement
    */
-  static makeHardPlacementDecision(legalMoves, gameState) {
+  static makeMediumPlacementDecision(legalMoves, gameState) {
     let bestMove = null
     let bestScore = -1
 
@@ -398,6 +490,413 @@ export class SimpleAI {
     }
 
     return bestMove
+  }
+
+  /**
+   * Hard AI: RUTHLESS master-level placement with MAXIMUM aggression
+   */
+  static makeHardPlacementDecision(legalMoves, gameState) {
+    let bestMove = null
+    let bestScore = -1
+
+    for (const move of legalMoves) {
+      // Abort if taking too long
+      if (this.shouldAbortComputation()) break
+
+      const piece = pieceLibrary.get(move.pieceId)
+      let score = this.evaluateMove(gameState, move, piece)
+
+      // MASSIVELY INCREASED aggressive strategic factors
+      score += this.evaluateStrategicPosition(gameState, move, piece) * 2.0   // INCREASED from 1.5
+      score += this.evaluateOpponentBlocking(gameState, move, piece) * 6.0    // INCREASED from 4.0
+      score += this.evaluatePatternFormation(gameState, move, piece) * 3.0    // INCREASED from 2.2
+      score += this.evaluateTerritoryControl(gameState, move, piece) * 2.5    // INCREASED from 1.8
+      score += this.evaluateEndgamePosition(gameState, move, piece) * 3.5     // INCREASED from 2.5
+      score += this.evaluateScoreMaximization(gameState, move, piece) * 4.0   // INCREASED from 3.0
+
+      // MASSIVELY ENHANCED RUTHLESS SABOTAGE BONUSES
+      score += this.evaluateAggressiveSabotage(gameState, move, piece) * 8.0   // INCREASED from 5.0
+      score += this.evaluateOpponentDenial(gameState, move, piece) * 5.0       // INCREASED from 3.5
+      score += this.evaluateChokePointControl(gameState, move, piece) * 6.0    // INCREASED from 4.0
+
+      // NEW: EXTREME AGGRESSION FACTORS
+      score += this.evaluateOpponentDestruction(gameState, move, piece) * 7.0  // NEW
+      score += this.evaluateViciousBlocking(gameState, move, piece) * 5.5      // NEW
+      score += this.evaluateStrategicSabotage(gameState, move, piece) * 6.5    // NEW
+
+      if (score > bestScore) {
+        bestScore = score
+        bestMove = move
+      }
+    }
+
+    return bestMove
+  }
+
+  /**
+   * NEW: Evaluate opponent destruction opportunities (EXTREME AGGRESSION)
+   */
+  static evaluateOpponentDestruction(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let destructionScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // RUTHLESSLY target opponent's best positions
+      destructionScore += this.evaluateOpponentPositionDestruction(board, x, y) * 2.0
+
+      // AGGRESSIVELY disrupt opponent patterns
+      destructionScore += this.evaluatePatternDestruction(board, x, y) * 3.0
+
+      // VICIOUS territory denial
+      destructionScore += this.evaluateTerritoryDestruction(board, x, y) * 2.5
+    }
+
+    return destructionScore
+  }
+
+  /**
+   * NEW: Evaluate vicious blocking opportunities
+   */
+  static evaluateViciousBlocking(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let blockingScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Block opponent's escape routes
+      blockingScore += this.evaluateEscapeRouteBlocking(board, x, y) * 3.0
+
+      // Block opponent's strategic formations
+      blockingScore += this.evaluateFormationBlocking(board, x, y) * 2.5
+
+      // Block opponent's territorial expansion
+      blockingScore += this.evaluateExpansionBlocking(board, x, y, 1) * 2.0
+    }
+
+    return blockingScore
+  }
+
+  /**
+   * NEW: Evaluate strategic sabotage opportunities
+   */
+  static evaluateStrategicSabotage(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let sabotageScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Sabotage opponent's future plans
+      sabotageScore += this.evaluateFuturePlanSabotage(board, x, y) * 2.0
+
+      // Sabotage opponent's scoring opportunities
+      sabotageScore += this.evaluateScoringDenial(board, x, y) * 3.0
+
+      // Force opponent into disadvantageous positions
+      sabotageScore += this.evaluateDisadvantageForcing(board, x, y) * 1.5
+    }
+
+    return sabotageScore
+  }
+
+  /**
+   * EXTREME AGGRESSION HELPER METHODS
+   */
+  static evaluateOpponentPositionDestruction(board, x, y) {
+    const opponentId = 1
+    let destructionValue = 0
+
+    // Count nearby opponent pieces that would be weakened
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            destructionValue += 0.8
+            // Extra bonus for corner/edge opponent pieces
+            if (this.isCornerOrEdge(board, nx, ny)) {
+              destructionValue += 1.0
+            }
+          }
+        }
+      }
+    }
+
+    return destructionValue
+  }
+
+  static evaluatePatternDestruction(board, x, y) {
+    const opponentId = 1
+    let patternDestruction = 0
+
+    // Detect and destroy opponent line patterns
+    patternDestruction += this.countDestroyedLines(board, x, y, opponentId) * 2.0
+
+    // Detect and destroy opponent rectangles
+    patternDestruction += this.countDestroyedRectangles(board, x, y, opponentId) * 3.0
+
+    return patternDestruction
+  }
+
+  static evaluateTerritoryDestruction(board, x, y) {
+    const opponentId = 1
+    let territoryDestruction = 0
+
+    // Count opponent territory that becomes fragmented
+    const fragmentedTerritory = this.countFragmentedTerritory(board, x, y, opponentId)
+    territoryDestruction += fragmentedTerritory * 0.5
+
+    return territoryDestruction
+  }
+
+  static evaluateEscapeRouteBlocking(board, x, y) {
+    // Count escape routes blocked for opponent
+    let blockedRoutes = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          // This empty space could be an escape route
+          if (this.isEscapeRoute(board, nx, ny)) {
+            blockedRoutes += 1.0
+          }
+        }
+      }
+    }
+
+    return blockedRoutes
+  }
+
+  static evaluateFormationBlocking(board, x, y) {
+    const opponentId = 1
+    let formationBlocking = 0
+
+    // Block potential opponent formations
+    formationBlocking += this.countBlockedFormations(board, x, y, opponentId) * 1.5
+
+    return formationBlocking
+  }
+
+  static evaluateFuturePlanSabotage(board, x, y) {
+    // Estimate future plan disruption
+    let planSabotage = 0
+
+    // Look for opponent patterns that could be developed
+    const developmentPotential = this.countOpponentDevelopmentPotential(board, x, y)
+    planSabotage += developmentPotential * 0.8
+
+    return planSabotage
+  }
+
+  static evaluateScoringDenial(board, x, y) {
+    const opponentId = 1
+    let scoringDenial = 0
+
+    // Deny opponent's potential scoring formations
+    scoringDenial += this.countDeniedScoringOpportunities(board, x, y, opponentId) * 1.0
+
+    return scoringDenial
+  }
+
+  static evaluateDisadvantageForcing(board, x, y) {
+    // Force opponent into bad positions
+    let disadvantageForcing = 0
+
+    if (this.forcesOpponentIntoCorner(board, x, y)) {
+      disadvantageForcing += 2.0
+    }
+
+    if (this.limitsOpponentOptions(board, x, y)) {
+      disadvantageForcing += 1.5
+    }
+
+    return disadvantageForcing
+  }
+
+  // Helper methods for extreme aggression
+  static countDestroyedLines(board, x, y, opponentId) {
+    let destroyedLines = 0
+
+    for (const [dx, dy] of [[1,0], [0,1], [1,1], [1,-1]]) {
+      if (this.wouldBreakOpponentLine(board, x, y, dx, dy, opponentId)) {
+        destroyedLines++
+      }
+    }
+
+    return destroyedLines
+  }
+
+  static countDestroyedRectangles(board, x, y, opponentId) {
+    let destroyedRects = 0
+
+    for (let size = 2; size <= 4; size++) {
+      if (this.wouldBreakOpponentRectangle(board, x, y, size, opponentId)) {
+        destroyedRects++
+      }
+    }
+
+    return destroyedRects
+  }
+
+  static countFragmentedTerritory(board, x, y, opponentId) {
+    // Simplified territory fragmentation calculation
+    let fragmentation = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === opponentId) {
+          fragmentation += 0.5
+        }
+      }
+    }
+
+    return fragmentation
+  }
+
+  static isEscapeRoute(board, x, y) {
+    // Check if this position provides escape to open area
+    let openConnections = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          openConnections++
+        }
+      }
+    }
+
+    return openConnections >= 2
+  }
+
+  static countBlockedFormations(board, x, y, opponentId) {
+    let blockedFormations = 0
+
+    // Count various formation types that would be blocked
+    blockedFormations += this.wouldBlockOpponentLine(board, x, y, 1, 0, opponentId) ? 1 : 0
+    blockedFormations += this.wouldBlockOpponentLine(board, x, y, 0, 1, opponentId) ? 1 : 0
+    blockedFormations += this.wouldBlockRectangle(board, x, y, 2, opponentId) ? 1 : 0
+
+    return blockedFormations
+  }
+
+  static countOpponentDevelopmentPotential(board, x, y) {
+    const opponentId = 1
+    let developmentPotential = 0
+
+    // Look for opponent pieces that could be extended
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            developmentPotential += 0.3
+          }
+        }
+      }
+    }
+
+    return developmentPotential
+  }
+
+  static countDeniedScoringOpportunities(board, x, y, opponentId) {
+    let deniedOpportunities = 0
+
+    // Count potential opponent scoring formations this would deny
+    if (this.wouldDenyOpponentScoring(board, x, y, opponentId)) {
+      deniedOpportunities += 2.0
+    }
+
+    return deniedOpportunities
+  }
+
+  static limitsOpponentOptions(board, x, y) {
+    // Check if this significantly limits opponent's future moves
+    const nearbyEmpty = this.countNearbyEmptySpaces(board, x, y)
+    return nearbyEmpty >= 5  // Limits many options
+  }
+
+  static wouldBreakOpponentLine(board, x, y, dx, dy, opponentId) {
+    // Check if placing here breaks an existing opponent line
+    let lineLength = 0
+
+    // Count in one direction
+    let checkX = x + dx, checkY = y + dy
+    while (checkX >= 0 && checkX < board.cols && checkY >= 0 && checkY < board.rows &&
+           board.grid[checkY][checkX] === opponentId) {
+      lineLength++
+      checkX += dx
+      checkY += dy
+    }
+
+    // Count in opposite direction
+    checkX = x - dx, checkY = y - dy
+    while (checkX >= 0 && checkX < board.cols && checkY >= 0 && checkY < board.rows &&
+           board.grid[checkY][checkX] === opponentId) {
+      lineLength++
+      checkX -= dx
+      checkY -= dy
+    }
+
+    return lineLength >= 2  // Would break a line of 3+ (including this position)
+  }
+
+  static wouldBreakOpponentRectangle(board, x, y, size, opponentId) {
+    // Check if placing here breaks an opponent rectangle formation
+    for (let rx = x - size + 1; rx <= x; rx++) {
+      for (let ry = y - size + 1; ry <= y; ry++) {
+        let opponentCells = 0
+        let totalCells = 0
+
+        for (let dx = 0; dx < size; dx++) {
+          for (let dy = 0; dy < size; dy++) {
+            const nx = rx + dx
+            const ny = ry + dy
+            if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+              totalCells++
+              if (board.grid[ny][nx] === opponentId) {
+                opponentCells++
+              }
+            }
+          }
+        }
+
+        if (opponentCells >= size && totalCells === size * size) {
+          return true  // Would break this rectangle
+        }
+      }
+    }
+
+    return false
+  }
+
+  static wouldDenyOpponentScoring(board, x, y, opponentId) {
+    // Simplified check for denying opponent scoring opportunities
+    let nearbyOpponents = 0
+
+    for (let nx = x - 1; nx <= x + 1; nx++) {
+      for (let ny = y - 1; ny <= y + 1; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            nearbyOpponents++
+          }
+        }
+      }
+    }
+
+    return nearbyOpponents >= 2  // Would disrupt opponent formations
   }
 
   /**

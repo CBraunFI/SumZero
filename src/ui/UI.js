@@ -65,7 +65,7 @@ export class UI {
           margin: 0 auto;
           padding: 8px;
           min-height: 100vh;
-          background: #ecf0f1;
+          background: #ffffff;
         }
 
         .game-header {
@@ -74,12 +74,12 @@ export class UI {
         }
 
         .game-status {
-          background: #f0f0f0;
+          background: #f8f8f8;
           padding: 12px;
-          border-radius: 8px;
+          border-radius: 4px;
           margin-bottom: 15px;
           text-align: center;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border: 1px solid #e8e8e8;
         }
 
         .game-status h1 {
@@ -109,11 +109,10 @@ export class UI {
         .board {
           display: grid;
           gap: 1px;
-          border: 2px solid #2c3e50;
+          border: 2px solid #333333;
           width: min(95vw, 350px);
           height: min(95vw, 350px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-          background: #34495e;
+          background: #333333;
           padding: 0;
           margin: 0 auto;
           border-radius: 4px;
@@ -121,10 +120,10 @@ export class UI {
         }
 
         .cell {
-          border: 0.5px solid #2c3e50;
+          border: 0.5px solid #333333;
           cursor: pointer;
           position: relative;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
         }
@@ -132,9 +131,8 @@ export class UI {
         /* Touch-friendly hover effects */
         @media (hover: hover) {
           .cell:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
             z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             border-radius: 2px;
           }
         }
@@ -147,29 +145,25 @@ export class UI {
         .cell.light { background: #ffffff; }
         .cell.dark { background: #ffffff; }
         .cell.unusable {
-          background: #95a5a6;
+          background: #cccccc;
           cursor: default;
-          opacity: 0.3;
+          opacity: 0.5;
         }
         .cell.unusable:hover {
           transform: none;
-          box-shadow: none;
         }
-        .cell.player1 { background: #3498db !important; border-color: #2980b9; }
-        .cell.player2 { background: #e74c3c !important; border-color: #c0392b; }
-        .cell.preview-valid { background: #90ee90 !important; border-color: #32cd32; }
-        .cell.preview-invalid { background: #ffcccb !important; border-color: #ff6b6b; }
-        .cell.occupied {
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-        }
+        .cell.player1 { background: #333333 !important; }
+        .cell.player2 { background: #888888 !important; }
+        .cell.preview-valid { background: #666666 !important; }
+        .cell.preview-invalid { background: #bbbbbb !important; }
 
         .side-panel {
           width: 100%;
           max-width: 100%;
           background: #f8f8f8;
           padding: 12px;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
           order: 2;
         }
 
@@ -191,14 +185,14 @@ export class UI {
           margin-top: 15px;
           padding: 12px;
           background: #f8f8f8;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
         }
 
         .arsenal-container h4 {
           margin: 0 0 10px 0;
           text-align: center;
-          color: #2c3e50;
+          color: #333333;
           font-size: 1.1em;
         }
 
@@ -216,10 +210,10 @@ export class UI {
           align-items: center;
           padding: 8px;
           background: #ffffff;
-          border: 2px solid #ddd;
-          border-radius: 6px;
+          border: 1px solid #dddddd;
+          border-radius: 4px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
           min-width: 60px;
@@ -227,9 +221,8 @@ export class UI {
 
         @media (hover: hover) {
           .arsenal-miniature:hover {
-            border-color: #999;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-color: #888888;
+            transform: translateY(-1px);
           }
         }
 
@@ -239,10 +232,9 @@ export class UI {
         }
 
         .arsenal-miniature.selected {
-          border-color: #007bff;
-          background: #e7f3ff;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+          border-color: #333333;
+          background: #f0f0f0;
+          transform: translateY(-1px);
         }
 
         .miniature-piece {
@@ -265,8 +257,8 @@ export class UI {
         }
 
         .miniature-cell.filled {
-          background: #3498db;
-          border: 1px solid #2980b9;
+          background: #333333;
+          border: 1px solid #333333;
         }
 
         .miniature-cell.empty {
@@ -283,19 +275,19 @@ export class UI {
         .piece-name {
           font-size: 0.75em;
           font-weight: 600;
-          color: #2c3e50;
+          color: #333333;
           line-height: 1;
         }
 
         .piece-count {
           font-size: 0.7em;
-          color: #7f8c8d;
+          color: #666666;
           margin-top: 2px;
         }
         .piece-tile {
-          background: #fafafa;
-          border: 2px solid #ccc;
-          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid #dddddd;
+          border-radius: 4px;
           padding: 10px;
           cursor: pointer;
           text-align: center;
@@ -304,8 +296,7 @@ export class UI {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          transition: all 0.15s ease;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
           font-size: 0.9em;
@@ -313,9 +304,8 @@ export class UI {
 
         @media (hover: hover) {
           .piece-tile:hover {
-            border-color: #999;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-color: #888888;
+            transform: translateY(-1px);
           }
         }
 
@@ -325,10 +315,9 @@ export class UI {
         }
 
         .piece-tile.selected {
-          border-color: #007bff;
-          background: #e7f3ff;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+          border-color: #333333;
+          background: #f0f0f0;
+          transform: translateY(-1px);
         }
 
         .piece-tile.unavailable {
@@ -341,13 +330,13 @@ export class UI {
           gap: 0;
           margin: 5px 0;
           justify-self: center;
-          border: 1px solid #333;
+          border: 1px solid #333333;
         }
         .piece-cell {
           width: 12px;
           height: 12px;
-          background: #444;
-          border: 1px solid #222;
+          background: #333333;
+          border: 1px solid #333333;
           box-sizing: border-box;
         }
         .controls {
@@ -358,22 +347,48 @@ export class UI {
           margin-bottom: 12px;
           padding: 12px;
           background: #ffffff;
-          border-radius: 8px;
-          border: 1px solid #ddd;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
+        }
+        .board-controls {
+          margin: 10px 0;
+        }
+        .board-controls-section {
+          text-align: center;
+          padding: 12px;
+          background: #f8f8f8;
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
+          margin: 0 auto;
+          max-width: min(95vw, 350px);
+        }
+        .selected-piece {
+          font-weight: 500;
+          margin-bottom: 8px;
+          color: #333333;
+        }
+        .transform-buttons {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .help-text {
+          color: #666666;
+          font-style: italic;
         }
 
         .btn {
-          background: #007bff;
+          background: #333333;
           color: white;
           border: none;
           padding: 12px 16px;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
           margin: 4px 2px;
           font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s ease;
+          font-weight: 400;
+          transition: all 0.15s ease;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
           min-height: 44px;
@@ -384,9 +399,7 @@ export class UI {
 
         @media (hover: hover) {
           .btn:hover {
-            background: #0056b3;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            background: #555555;
           }
         }
 
@@ -396,46 +409,46 @@ export class UI {
         }
 
         .btn:disabled {
-          background: #ccc;
+          background: #cccccc;
           cursor: not-allowed;
           pointer-events: none;
           opacity: 0.6;
         }
 
         .btn-new-game {
-          background: #e74c3c;
+          background: #666666;
           width: 100%;
           margin-bottom: 8px;
         }
 
         @media (hover: hover) {
           .btn-new-game:hover {
-            background: #c0392b;
+            background: #777777;
           }
         }
 
         .btn-menu {
-          background: #9b59b6;
+          background: #333333;
           width: 100%;
           margin-bottom: 8px;
         }
 
         @media (hover: hover) {
           .btn-menu:hover {
-            background: #8e44ad;
+            background: #555555;
           }
         }
         .player-info {
           margin-bottom: 12px;
           padding: 12px;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
           background: #ffffff;
         }
 
         .player-info.current {
-          background: #e7f3ff;
-          border: 2px solid #007bff;
+          background: #f0f0f0;
+          border: 2px solid #333333;
         }
 
         .arsenal-list {
@@ -448,7 +461,7 @@ export class UI {
           align-items: center;
           padding: 8px;
           margin: 4px 0;
-          background: #f8f9fa;
+          background: #f8f8f8;
           border-radius: 4px;
           font-size: 0.9em;
         }
@@ -460,9 +473,9 @@ export class UI {
           gap: 20px;
           margin: 10px 0;
           padding: 10px;
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 6px;
-          border: 1px solid #ddd;
+          background: #ffffff;
+          border-radius: 4px;
+          border: 1px solid #e8e8e8;
         }
 
         .score-item {
@@ -1507,6 +1520,7 @@ export class UI {
     boardSection.innerHTML = `
       <h3>Game Board</h3>
       <div id="board"></div>
+      <div id="board-controls" class="board-controls"></div>
       <div id="arsenal" class="arsenal-container">
         <h4>Your Arsenal</h4>
         <div id="arsenal-pieces" class="arsenal-pieces"></div>
@@ -1522,6 +1536,7 @@ export class UI {
     `
 
     this.renderBoard(boardSection.querySelector('#board'))
+    this.renderBoardControls(boardSection.querySelector('#board-controls'))
     this.renderArsenal(boardSection.querySelector('#arsenal-pieces'))
     this.renderCurrentPlayerInfo(sidePanel.querySelector('#current-player-info'))
     this.renderScoringRules(sidePanel.querySelector('#scoring-rules'))
@@ -1706,6 +1721,27 @@ export class UI {
     `
   }
 
+  renderBoardControls(container) {
+    if (this.selectedPiece) {
+      container.innerHTML = `
+        <div class="board-controls-section">
+          <div class="selected-piece">Selected: ${this.selectedPiece}</div>
+          <div class="transform-buttons">
+            <button class="btn btn-transform" onclick="window.ui.rotatePiece()">Rotate (R)</button>
+            <button class="btn btn-transform" onclick="window.ui.flipPiece()">Flip (F)</button>
+            <button class="btn btn-cancel" onclick="window.ui.clearSelection()">Cancel (Esc)</button>
+          </div>
+        </div>
+      `
+    } else {
+      container.innerHTML = `
+        <div class="board-controls-section">
+          <div class="help-text">Select a piece from your arsenal</div>
+        </div>
+      `
+    }
+  }
+
   renderControls(container) {
     let controlsHTML = `<div class="controls-section">`
 
@@ -1716,19 +1752,6 @@ export class UI {
     controlsHTML += `
       <button class="btn btn-new-game" onclick="window.ui.newGame()">New Game</button>
     </div>`
-
-    if (this.selectedPiece) {
-      controlsHTML += `
-        <div class="controls-section">
-          <div>Selected: ${this.selectedPiece}</div>
-          <button class="btn" onclick="window.ui.rotatePiece()">Rotate (R)</button>
-          <button class="btn" onclick="window.ui.flipPiece()">Flip (F)</button>
-          <button class="btn" onclick="window.ui.clearSelection()">Cancel (Esc)</button>
-        </div>
-      `
-    } else {
-      controlsHTML += '<div class="controls-section">Select a piece from your arsenal</div>'
-    }
 
     container.innerHTML = controlsHTML
   }
