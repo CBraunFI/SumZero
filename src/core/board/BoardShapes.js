@@ -12,43 +12,79 @@ export class BoardShapes {
 
   /**
    * Create a board with the specified shape
-   * @param {string} shapeType - Type of shape ('rectangular', 'cross', 'diamond', 'hexagonal', 'lshape', 'plus', 'tshape', 'ushape', 'hourglass', 'star', 'triangle', 'arrow', 'bowtie', 'octagon', 'random')
+   * @param {string} shapeType - Type of shape
    * @param {number} baseSize - Base size for the shape
+   * @param {boolean} addHoles - Whether to add random holes for difficulty
    * @returns {Object} Board object
    */
-  static createShapedBoard(shapeType, baseSize = 10) {
+  static createShapedBoard(shapeType, baseSize = 10, addHoles = true) {
+    let board
+
     switch (shapeType) {
       case 'cross':
-        return this.createCrossBoard(baseSize)
+        board = this.createCrossBoard(baseSize)
+        break
       case 'diamond':
-        return this.createDiamondBoard(baseSize)
+        board = this.createDiamondBoard(baseSize)
+        break
       case 'hexagonal':
-        return this.createHexagonalBoard(baseSize)
+        board = this.createHexagonalBoard(baseSize)
+        break
       case 'lshape':
-        return this.createLShapeBoard(baseSize)
+        board = this.createLShapeBoard(baseSize)
+        break
       case 'plus':
-        return this.createPlusBoard(baseSize)
+        board = this.createPlusBoard(baseSize)
+        break
       case 'tshape':
-        return this.createTShapeBoard(baseSize)
+        board = this.createTShapeBoard(baseSize)
+        break
       case 'ushape':
-        return this.createUShapeBoard(baseSize)
+        board = this.createUShapeBoard(baseSize)
+        break
       case 'hourglass':
-        return this.createHourglassBoard(baseSize)
+        board = this.createHourglassBoard(baseSize)
+        break
       case 'star':
-        return this.createStarBoard(baseSize)
+        board = this.createStarBoard(baseSize)
+        break
       case 'triangle':
-        return this.createTriangleBoard(baseSize)
+        board = this.createTriangleBoard(baseSize)
+        break
       case 'arrow':
-        return this.createArrowBoard(baseSize)
+        board = this.createArrowBoard(baseSize)
+        break
       case 'bowtie':
-        return this.createBowtieBoard(baseSize)
+        board = this.createBowtieBoard(baseSize)
+        break
       case 'octagon':
-        return this.createOctagonBoard(baseSize)
+        board = this.createOctagonBoard(baseSize)
+        break
+      case 'pentagon':
+        board = this.createPentagonBoard(baseSize)
+        break
+      case 'spiral':
+        board = this.createSpiralBoard(baseSize)
+        break
+      case 'zigzag':
+        board = this.createZigzagBoard(baseSize)
+        break
+      case 'ring':
+        board = this.createRingBoard(baseSize)
+        break
       case 'random':
-        return this.createRandomBoard(baseSize)
+        board = this.createRandomBoard(baseSize, addHoles)
+        break
       default:
-        return createEmptyBoard(baseSize, baseSize)
+        board = createEmptyBoard(baseSize, baseSize)
     }
+
+    // Add random holes for increased difficulty (except for random which handles its own)
+    if (addHoles && shapeType !== 'random') {
+      board = this.addRandomHoles(board)
+    }
+
+    return board
   }
 
   /**
@@ -395,21 +431,219 @@ export class BoardShapes {
   }
 
   /**
-   * Create a random interesting shape
+   * Create a pentagon-shaped board
    */
-  static createRandomBoard(size) {
-    const shapes = [
-      'cross', 'diamond', 'hexagonal', 'lshape', 'plus', 'tshape',
-      'ushape', 'hourglass', 'star', 'triangle', 'arrow', 'bowtie', 'octagon'
-    ]
-    const randomShape = shapes[Math.floor(Math.random() * shapes.length)]
-    return this.createShapedBoard(randomShape, size)
+  static createPentagonBoard(size) {
+    const board = createEmptyBoard(size, size)
+    const center = Math.floor(size / 2)
+    const radius = Math.floor(size / 2) - 1
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - center
+        const dy = y - center
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const angle = Math.atan2(dy, dx)
+
+        // Create 5-sided polygon
+        const pentagonSide = Math.cos(5 * (angle + Math.PI / 5))
+        const effectiveRadius = radius * (0.7 + 0.3 * pentagonSide)
+
+        if (distance > effectiveRadius) {
+          board.grid[y][x] = -1
+        }
+      }
+    }
+
+    return board
   }
 
   /**
-   * Get a random varied board configuration
+   * Create a spiral-shaped board
+   */
+  static createSpiralBoard(size) {
+    const board = createEmptyBoard(size, size)
+    const center = Math.floor(size / 2)
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - center
+        const dy = y - center
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const angle = Math.atan2(dy, dx)
+
+        // Create spiral pattern
+        const spiralRadius = (angle + Math.PI) / (2 * Math.PI) * (size / 3)
+        const spiralThickness = 2
+
+        if (Math.abs(distance - spiralRadius) > spiralThickness || distance > size / 2 - 1) {
+          board.grid[y][x] = -1
+        }
+      }
+    }
+
+    return board
+  }
+
+  /**
+   * Create a zigzag-shaped board
+   */
+  static createZigzagBoard(size) {
+    const board = createEmptyBoard(size, size)
+    const amplitude = Math.floor(size / 4)
+    const frequency = 2
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        // Create zigzag pattern
+        const zigzagCenter = Math.floor(size / 2) + amplitude * Math.sin(y * frequency * Math.PI / size)
+        const zigzagWidth = Math.floor(size / 4)
+
+        if (Math.abs(x - zigzagCenter) > zigzagWidth) {
+          board.grid[y][x] = -1
+        }
+      }
+    }
+
+    return board
+  }
+
+  /**
+   * Create a ring-shaped board
+   */
+  static createRingBoard(size) {
+    const board = createEmptyBoard(size, size)
+    const center = Math.floor(size / 2)
+    const outerRadius = Math.floor(size / 2) - 1
+    const innerRadius = Math.floor(size / 4)
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - center
+        const dy = y - center
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        // Ring: keep cells between inner and outer radius
+        if (distance > outerRadius || distance < innerRadius) {
+          board.grid[y][x] = -1
+        }
+      }
+    }
+
+    return board
+  }
+
+  /**
+   * Add random holes to a board for increased difficulty
+   */
+  static addRandomHoles(board) {
+    const totalCells = board.rows * board.cols
+    let playableCells = 0
+
+    // Count current playable cells
+    for (let y = 0; y < board.rows; y++) {
+      for (let x = 0; x < board.cols; x++) {
+        if (board.grid[y][x] === 0) {
+          playableCells++
+        }
+      }
+    }
+
+    // Add holes: 3-8% of playable cells become holes
+    const holePercentage = 0.03 + Math.random() * 0.05 // 3-8%
+    const numHoles = Math.floor(playableCells * holePercentage)
+    const holes = new Set()
+
+    for (let i = 0; i < numHoles; i++) {
+      let attempts = 0
+      while (attempts < 50) { // Prevent infinite loop
+        const x = Math.floor(Math.random() * board.cols)
+        const y = Math.floor(Math.random() * board.rows)
+        const key = `${x},${y}`
+
+        if (!holes.has(key) && board.grid[y][x] === 0) {
+          // Don't create holes that would isolate large areas
+          if (!this.wouldIsolateArea(board, x, y)) {
+            board.grid[y][x] = -1
+            holes.add(key)
+            break
+          }
+        }
+        attempts++
+      }
+    }
+
+    return board
+  }
+
+  /**
+   * Check if creating a hole at position would isolate a large area
+   */
+  static wouldIsolateArea(board, holeX, holeY) {
+    // Temporarily place hole
+    const original = board.grid[holeY][holeX]
+    board.grid[holeY][holeX] = -1
+
+    // Check connected areas around the hole
+    const visited = new Set()
+    let largestArea = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const x = holeX + dx
+      const y = holeY + dy
+      if (x >= 0 && x < board.cols && y >= 0 && y < board.rows) {
+        const key = `${x},${y}`
+        if (!visited.has(key) && board.grid[y][x] === 0) {
+          const areaSize = this.countConnectedArea(board, x, y, visited)
+          largestArea = Math.max(largestArea, areaSize)
+        }
+      }
+    }
+
+    // Restore original value
+    board.grid[holeY][holeX] = original
+
+    // Don't allow holes that would create areas smaller than 8 cells
+    return largestArea < 8
+  }
+
+  /**
+   * Count connected empty area (for hole validation)
+   */
+  static countConnectedArea(board, x, y, visited) {
+    const key = `${x},${y}`
+    if (visited.has(key)) return 0
+    if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
+    if (board.grid[y][x] !== 0) return 0
+
+    visited.add(key)
+    let area = 1
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      area += this.countConnectedArea(board, x + dx, y + dy, visited)
+    }
+
+    return area
+  }
+
+  /**
+   * Create a random interesting shape
+   */
+  static createRandomBoard(size, addHoles = true) {
+    const shapes = [
+      'cross', 'diamond', 'hexagonal', 'lshape', 'plus', 'tshape',
+      'ushape', 'hourglass', 'star', 'triangle', 'arrow', 'bowtie',
+      'octagon', 'pentagon', 'spiral', 'zigzag', 'ring'
+    ]
+    const randomShape = shapes[Math.floor(Math.random() * shapes.length)]
+    return this.createShapedBoard(randomShape, size, addHoles)
+  }
+
+  /**
+   * Get a random varied board configuration with equal probability for all shapes
    */
   static getRandomVariedConfig() {
+    // All unique board shapes (17 total) - equal probability for each
     const configs = [
       { shape: 'cross', size: 11 },
       { shape: 'diamond', size: 12 },
@@ -424,9 +658,36 @@ export class BoardShapes {
       { shape: 'arrow', size: 11 },
       { shape: 'bowtie', size: 10 },
       { shape: 'octagon', size: 11 },
-      { shape: 'random', size: 10 }
+      { shape: 'pentagon', size: 10 },
+      { shape: 'spiral', size: 12 },
+      { shape: 'zigzag', size: 11 },
+      { shape: 'ring', size: 10 }
     ]
 
+    // Each shape has exactly equal probability (1/17 ≈ 5.88%)
     return configs[Math.floor(Math.random() * configs.length)]
+  }
+
+  /**
+   * Get all available board shape names
+   */
+  static getAllShapeNames() {
+    return [
+      'cross', 'diamond', 'hexagonal', 'lshape', 'plus', 'tshape',
+      'ushape', 'hourglass', 'star', 'triangle', 'arrow', 'bowtie',
+      'octagon', 'pentagon', 'spiral', 'zigzag', 'ring'
+    ]
+  }
+
+  /**
+   * Get statistics about board shape distribution
+   */
+  static getShapeStatistics() {
+    const shapes = this.getAllShapeNames()
+    return {
+      totalShapes: shapes.length,
+      probabilityPerShape: `${(100 / shapes.length).toFixed(2)}%`,
+      shapes: shapes
+    }
   }
 }
