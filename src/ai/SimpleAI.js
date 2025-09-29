@@ -370,13 +370,18 @@ export class SimpleAI {
       const piece = pieceLibrary.get(move.pieceId)
       let score = this.evaluateMove(gameState, move, piece)
 
-      // Advanced strategic factors
-      score += this.evaluateStrategicPosition(gameState, move, piece) * 1.2
-      score += this.evaluateOpponentBlocking(gameState, move, piece) * 1.5
-      score += this.evaluatePatternFormation(gameState, move, piece) * 1.8
-      score += this.evaluateTerritoryControl(gameState, move, piece) * 1.0
-      score += this.evaluateEndgamePosition(gameState, move, piece) * 2.0
-      score += this.evaluateScoreMaximization(gameState, move, piece) * 2.5
+      // MASSIVELY INCREASED aggressive strategic factors
+      score += this.evaluateStrategicPosition(gameState, move, piece) * 1.5
+      score += this.evaluateOpponentBlocking(gameState, move, piece) * 4.0  // INCREASED FROM 1.5 TO 4.0
+      score += this.evaluatePatternFormation(gameState, move, piece) * 2.2
+      score += this.evaluateTerritoryControl(gameState, move, piece) * 1.8
+      score += this.evaluateEndgamePosition(gameState, move, piece) * 2.5
+      score += this.evaluateScoreMaximization(gameState, move, piece) * 3.0
+
+      // NEW: RUTHLESS SABOTAGE BONUSES
+      score += this.evaluateAggressiveSabotage(gameState, move, piece) * 5.0  // NEW AGGRESSIVE FACTOR
+      score += this.evaluateOpponentDenial(gameState, move, piece) * 3.5     // NEW DENIAL FACTOR
+      score += this.evaluateChokePointControl(gameState, move, piece) * 4.0  // NEW CHOKEPOINT CONTROL
 
       if (score > bestScore) {
         bestScore = score
@@ -763,23 +768,1141 @@ export class SimpleAI {
   }
 
   static evaluateBlockingValue(board, move, piece) {
-    // Count how many opponent opportunities this move blocks
-    return 2 // Simplified implementation
+    let blockingScore = 0
+    const [anchorX, anchorY] = move.anchor
+    const opponentId = 1 // Player is always 1, AI is always 2
+
+    // Check each cell this piece would occupy
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // High-value strategic positions to block
+      blockingScore += this.evaluateStrategicPositionDenial(board, x, y)
+
+      // Block opponent pattern formations
+      blockingScore += this.evaluatePatternDisruption(board, x, y, opponentId) * 3
+
+      // Block corner and edge positions (very valuable)
+      if (this.isCornerOrEdge(board, x, y)) {
+        blockingScore += 8
+      }
+
+      // Block central positions early game
+      const fillRatio = this.calculateBoardFillRatio(board)
+      if (fillRatio < 0.3 && this.isCentralPosition(board, x, y)) {
+        blockingScore += 6
+      }
+
+      // Deny large empty areas to opponent
+      blockingScore += this.evaluateAreaDenial(board, x, y) * 2
+    }
+
+    return blockingScore
   }
 
   static countFutureOptions(board, move, piece) {
-    // Count remaining placement options after this move
-    return 5 // Simplified implementation
+    const [anchorX, anchorY] = move.anchor
+    let futureOptions = 0
+
+    // Simulate placing the piece and count remaining options
+    const testBoard = this.simulatePlacement(board, move, piece, 2)
+
+    // Count potential placement spots for remaining pieces
+    const samplePositions = this.generateSamplePositions(testBoard)
+
+    for (const [x, y] of samplePositions) {
+      if (testBoard.grid[y][x] === 0) {
+        // Count how many different piece types could fit here
+        futureOptions += this.countPieceFitOptions(testBoard, x, y)
+      }
+    }
+
+    // Bonus for moves that create multiple future opportunities
+    if (futureOptions > 15) {
+      futureOptions += 5
+    }
+
+    return futureOptions
   }
 
   static evaluatePatternCompletion(board, move, piece) {
-    // Check if this move completes or nearly completes scoring patterns
-    return 3 // Simplified implementation
+    let completionScore = 0
+    const [anchorX, anchorY] = move.anchor
+
+    // Check if this move completes or enhances patterns
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Check line completion potential
+      completionScore += this.evaluateLineCompletion(board, x, y, 2) * 4
+
+      // Check rectangle completion potential
+      completionScore += this.evaluateRectangleCompletion(board, x, y, 2) * 6
+
+      // Check territory completion
+      completionScore += this.evaluateTerritoryCompletion(board, x, y, 2) * 3
+    }
+
+    return completionScore
   }
 
   static estimateScoreGain(board, move, piece) {
-    // Estimate points this move might generate
-    return piece.relCells.length // Basic estimate
+    let scoreEstimate = piece.relCells.length // Base score
+
+    // Enhanced scoring based on pattern potential
+    const [anchorX, anchorY] = move.anchor
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Line formation bonus
+      const lineScore = this.estimateLineScore(board, x, y, 2)
+      scoreEstimate += lineScore * 0.8
+
+      // Rectangle formation bonus
+      const rectScore = this.estimateRectangleScore(board, x, y, 2)
+      scoreEstimate += rectScore * 1.2
+
+      // Strategic position multiplier
+      const positionMultiplier = this.getPositionScoreMultiplier(board, x, y)
+      scoreEstimate *= positionMultiplier
+    }
+
+    return scoreEstimate
+  }
+
+  /**
+   * AGGRESSIVE AI HELPER METHODS - SABOTAGE & DISRUPTION
+   */
+
+  /**
+   * Evaluate how strategic denying this position would be
+   */
+  static evaluateStrategicPositionDenial(board, x, y) {
+    let denialValue = 0
+
+    // High value for positions that control multiple areas
+    const controlledArea = this.countControlledArea(board, x, y)
+    denialValue += controlledArea * 0.3
+
+    // High value for intersection points
+    if (this.isIntersectionPoint(board, x, y)) {
+      denialValue += 4
+    }
+
+    // High value for chokepoints
+    if (this.isChokepoint(board, x, y)) {
+      denialValue += 6
+    }
+
+    return denialValue
+  }
+
+  /**
+   * Evaluate pattern disruption potential
+   */
+  static evaluatePatternDisruption(board, x, y, opponentId) {
+    let disruptionScore = 0
+
+    // Check if this position would break potential opponent patterns
+    disruptionScore += this.checkLineDisruption(board, x, y, opponentId) * 2
+    disruptionScore += this.checkRectangleDisruption(board, x, y, opponentId) * 3
+    disruptionScore += this.checkTerritoryDisruption(board, x, y, opponentId) * 1.5
+
+    return disruptionScore
+  }
+
+  /**
+   * Check if position is corner or edge
+   */
+  static isCornerOrEdge(board, x, y) {
+    const isEdge = x === 0 || x === board.cols - 1 || y === 0 || y === board.rows - 1
+    const isCorner = (x <= 1 || x >= board.cols - 2) && (y <= 1 || y >= board.rows - 2)
+    return isEdge || isCorner
+  }
+
+  /**
+   * Check if position is central
+   */
+  static isCentralPosition(board, x, y) {
+    const centerX = Math.floor(board.cols / 2)
+    const centerY = Math.floor(board.rows / 2)
+    const distance = Math.abs(x - centerX) + Math.abs(y - centerY)
+    return distance <= 2
+  }
+
+  /**
+   * Evaluate area denial value
+   */
+  static evaluateAreaDenial(board, x, y) {
+    let largestEmptyArea = 0
+
+    // Count connected empty areas around this position
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          const areaSize = this.countConnectedEmptyArea(board, nx, ny, new Set())
+          largestEmptyArea = Math.max(largestEmptyArea, areaSize)
+        }
+      }
+    }
+
+    // Higher value for denying larger areas
+    return Math.min(largestEmptyArea * 0.2, 5)
+  }
+
+  /**
+   * Simulate placing a piece on the board
+   */
+  static simulatePlacement(board, move, piece, playerId) {
+    const testBoard = {
+      ...board,
+      grid: board.grid.map(row => [...row])
+    }
+
+    const [anchorX, anchorY] = move.anchor
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+      if (x >= 0 && x < board.cols && y >= 0 && y < board.rows) {
+        testBoard.grid[y][x] = playerId
+      }
+    }
+
+    return testBoard
+  }
+
+  /**
+   * Generate sample positions for analysis
+   */
+  static generateSamplePositions(board) {
+    const positions = []
+    const step = Math.max(1, Math.floor(board.cols / 8))
+
+    for (let y = 0; y < board.rows; y += step) {
+      for (let x = 0; x < board.cols; x += step) {
+        positions.push([x, y])
+      }
+    }
+
+    return positions
+  }
+
+  /**
+   * Count how many piece types could fit at position
+   */
+  static countPieceFitOptions(board, x, y) {
+    let options = 0
+
+    // Test small pieces (1-3 cells) - simplified
+    const testSizes = [1, 2, 3]
+    for (const size of testSizes) {
+      if (this.canFitPieceOfSize(board, x, y, size)) {
+        options += size
+      }
+    }
+
+    return options
+  }
+
+  /**
+   * Pattern completion evaluation methods
+   */
+  static evaluateLineCompletion(board, x, y, playerId) {
+    let lineBonus = 0
+
+    // Check both horizontal and vertical line extensions
+    for (const [dx, dy] of [[1,0], [0,1]]) {
+      const lineLength = this.getMaxLineExtension(board, x, y, dx, dy, playerId)
+      if (lineLength >= 3) {
+        lineBonus += lineLength * 2
+      }
+    }
+
+    return lineBonus
+  }
+
+  static evaluateRectangleCompletion(board, x, y, playerId) {
+    let rectBonus = 0
+
+    // Check potential rectangle formations around this position
+    for (let size = 2; size <= 4; size++) {
+      if (this.contributesToRectangle(board, x, y, size, playerId)) {
+        rectBonus += size * 3
+      }
+    }
+
+    return rectBonus
+  }
+
+  static evaluateTerritoryCompletion(board, x, y, playerId) {
+    // Count nearby allied pieces for territory control
+    let territoryBonus = 0
+    let alliedPieces = 0
+
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === playerId) {
+            alliedPieces++
+          }
+        }
+      }
+    }
+
+    territoryBonus = alliedPieces * 0.5
+    return territoryBonus
+  }
+
+  /**
+   * Score estimation methods
+   */
+  static estimateLineScore(board, x, y, playerId) {
+    let maxLineScore = 0
+
+    for (const [dx, dy] of [[1,0], [0,1], [1,1], [1,-1]]) {
+      const lineLength = this.getMaxLineExtension(board, x, y, dx, dy, playerId)
+      if (lineLength >= 4) {
+        maxLineScore = Math.max(maxLineScore, 5 + lineLength)
+      }
+    }
+
+    return maxLineScore
+  }
+
+  static estimateRectangleScore(board, x, y, playerId) {
+    let maxRectScore = 0
+
+    for (let size = 2; size <= 4; size++) {
+      if (this.contributesToRectangle(board, x, y, size, playerId)) {
+        maxRectScore = Math.max(maxRectScore, 7 + size * 2)
+      }
+    }
+
+    return maxRectScore
+  }
+
+  static getPositionScoreMultiplier(board, x, y) {
+    let multiplier = 1.0
+
+    // Corner bonus
+    if (this.isCornerOrEdge(board, x, y)) {
+      multiplier += 0.3
+    }
+
+    // Center bonus (early game)
+    if (this.isCentralPosition(board, x, y)) {
+      const fillRatio = this.calculateBoardFillRatio(board)
+      if (fillRatio < 0.4) {
+        multiplier += 0.2
+      }
+    }
+
+    return multiplier
+  }
+
+  /**
+   * Disruption analysis methods
+   */
+  static checkLineDisruption(board, x, y, opponentId) {
+    let disruption = 0
+
+    // Check if placing here would break opponent lines
+    for (const [dx, dy] of [[1,0], [0,1]]) {
+      const lineLength = this.getMaxLineExtension(board, x, y, dx, dy, opponentId)
+      if (lineLength >= 2) {
+        disruption += lineLength
+      }
+    }
+
+    return disruption
+  }
+
+  static checkRectangleDisruption(board, x, y, opponentId) {
+    // Check if this position would prevent opponent rectangles
+    let disruption = 0
+
+    for (let size = 2; size <= 3; size++) {
+      if (this.wouldBlockRectangle(board, x, y, size, opponentId)) {
+        disruption += size * 2
+      }
+    }
+
+    return disruption
+  }
+
+  static checkTerritoryDisruption(board, x, y, opponentId) {
+    let disruption = 0
+    let nearbyOpponents = 0
+
+    // Count nearby opponent pieces
+    for (let nx = x - 1; nx <= x + 1; nx++) {
+      for (let ny = y - 1; ny <= y + 1; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            nearbyOpponents++
+          }
+        }
+      }
+    }
+
+    disruption = nearbyOpponents * 1.5
+    return disruption
+  }
+
+  /**
+   * Utility analysis methods
+   */
+  static countControlledArea(board, x, y) {
+    // Count empty cells in control radius
+    let controlled = 0
+
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === 0) {
+            controlled++
+          }
+        }
+      }
+    }
+
+    return controlled
+  }
+
+  static isIntersectionPoint(board, x, y) {
+    // Check if this position connects multiple areas
+    let emptyDirections = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          emptyDirections++
+        }
+      }
+    }
+
+    return emptyDirections >= 3
+  }
+
+  static isChokepoint(board, x, y) {
+    // Check if this position controls passage between areas
+    return this.countConnectedEmptyAreas(board, x, y) > 1
+  }
+
+  static countConnectedEmptyArea(board, x, y, visited) {
+    const key = `${x},${y}`
+    if (visited.has(key)) return 0
+    if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
+    if (board.grid[y][x] !== 0) return 0
+
+    visited.add(key)
+    let area = 1
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      area += this.countConnectedEmptyArea(board, x + dx, y + dy, visited)
+    }
+
+    return area
+  }
+
+  static countConnectedEmptyAreas(board, x, y) {
+    // Temporarily block this position and count separate empty areas
+    const originalValue = board.grid[y][x]
+    board.grid[y][x] = -1
+
+    let areas = 0
+    const globalVisited = new Set()
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        const key = `${nx},${ny}`
+        if (!globalVisited.has(key) && board.grid[ny][nx] === 0) {
+          this.countConnectedEmptyArea(board, nx, ny, globalVisited)
+          areas++
+        }
+      }
+    }
+
+    board.grid[y][x] = originalValue
+    return areas
+  }
+
+  static canFitPieceOfSize(board, x, y, size) {
+    let fittableCells = 0
+
+    for (let dx = 0; dx < size; dx++) {
+      for (let dy = 0; dy < size; dy++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < board.cols && ny < board.rows && board.grid[ny][nx] === 0) {
+          fittableCells++
+        }
+      }
+    }
+
+    return fittableCells >= size
+  }
+
+  static getMaxLineExtension(board, x, y, dx, dy, playerId) {
+    let length = 0
+
+    // Count in positive direction
+    let nx = x + dx
+    let ny = y + dy
+    while (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows &&
+           board.grid[ny][nx] === playerId) {
+      length++
+      nx += dx
+      ny += dy
+    }
+
+    // Count in negative direction
+    nx = x - dx
+    ny = y - dy
+    while (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows &&
+           board.grid[ny][nx] === playerId) {
+      length++
+      nx -= dx
+      ny -= dy
+    }
+
+    return length
+  }
+
+  static contributesToRectangle(board, x, y, size, playerId) {
+    // Check if this position could be part of a rectangle
+    for (let rx = x - size + 1; rx <= x; rx++) {
+      for (let ry = y - size + 1; ry <= y; ry++) {
+        if (this.isValidRectanglePosition(board, rx, ry, size, playerId)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  static wouldBlockRectangle(board, x, y, size, opponentId) {
+    // Check if placing here would prevent opponent rectangle
+    for (let rx = x - size + 1; rx <= x; rx++) {
+      for (let ry = y - size + 1; ry <= y; ry++) {
+        if (this.isValidRectanglePosition(board, rx, ry, size, opponentId, true)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  static isValidRectanglePosition(board, rx, ry, size, playerId, checkEmpty = false) {
+    let validCells = 0
+    let totalCells = size * size
+
+    for (let dx = 0; dx < size; dx++) {
+      for (let dy = 0; dy < size; dy++) {
+        const nx = rx + dx
+        const ny = ry + dy
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          const cellValue = board.grid[ny][nx]
+          if (checkEmpty && cellValue === 0) {
+            validCells++
+          } else if (!checkEmpty && cellValue === playerId) {
+            validCells++
+          }
+        }
+      }
+    }
+
+    return validCells >= Math.floor(totalCells * 0.6)
+  }
+
+  /**
+   * NEW AGGRESSIVE SABOTAGE METHODS - MAXIMUM AGGRESSION
+   */
+
+  /**
+   * Evaluate aggressive sabotage opportunities
+   */
+  static evaluateAggressiveSabotage(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let sabotageScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Ruthlessly prioritize disrupting opponent's best spots
+      sabotageScore += this.evaluateOpponentHotspotDestruction(board, x, y) * 3
+
+      // Aggressively deny opponent pattern completions
+      sabotageScore += this.evaluatePatternDenial(board, x, y) * 4
+
+      // Block opponent's territorial expansion ruthlessly
+      sabotageScore += this.evaluateTerritorialBlocking(board, x, y) * 2.5
+
+      // Destroy opponent's strategic positioning
+      sabotageScore += this.evaluateStrategicDestruction(board, x, y) * 3.5
+    }
+
+    return sabotageScore
+  }
+
+  /**
+   * Evaluate opponent denial opportunities
+   */
+  static evaluateOpponentDenial(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let denialScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Deny opponent access to high-value areas
+      denialScore += this.evaluateHighValueAreaDenial(board, x, y) * 2.5
+
+      // Block opponent's future piece placement options
+      denialScore += this.evaluateFuturePlacementDenial(board, x, y) * 2
+
+      // Cut off opponent's escape routes and expansion paths
+      denialScore += this.evaluateExpansionPathBlocking(board, x, y) * 3
+    }
+
+    return denialScore
+  }
+
+  /**
+   * Evaluate chokepoint control opportunities
+   */
+  static evaluateChokePointControl(gameState, move, piece) {
+    const board = gameState.board
+    const [anchorX, anchorY] = move.anchor
+    let chokeScore = 0
+
+    for (const [dx, dy] of piece.relCells) {
+      const x = anchorX + dx
+      const y = anchorY + dy
+
+      // Control critical board positions
+      if (this.isCriticalChokepoint(board, x, y)) {
+        chokeScore += 8
+      }
+
+      // Control passages between board areas
+      if (this.controlsPassage(board, x, y)) {
+        chokeScore += 6
+      }
+
+      // Control board center early game
+      const fillRatio = this.calculateBoardFillRatio(board)
+      if (fillRatio < 0.3 && this.isCentralPosition(board, x, y)) {
+        chokeScore += 5
+      }
+    }
+
+    return chokeScore
+  }
+
+  /**
+   * AGGRESSIVE HELPER METHODS - SABOTAGE IMPLEMENTATION
+   */
+
+  static evaluateOpponentHotspotDestruction(board, x, y) {
+    let destructionValue = 0
+    const opponentId = 1
+
+    // Check if this position ruins a powerful opponent formation
+    for (let checkSize = 3; checkSize <= 5; checkSize++) {
+      if (this.wouldDestroyOpponentFormation(board, x, y, checkSize, opponentId)) {
+        destructionValue += checkSize * 2
+      }
+    }
+
+    // Extra bonus for ruining corner/edge formations
+    if (this.isCornerOrEdge(board, x, y)) {
+      destructionValue += 4
+    }
+
+    return destructionValue
+  }
+
+  static evaluatePatternDenial(board, x, y) {
+    let denialValue = 0
+    const opponentId = 1
+
+    // Deny line patterns
+    denialValue += this.countPotentialOpponentLines(board, x, y, opponentId) * 2
+
+    // Deny rectangle patterns
+    denialValue += this.countPotentialOpponentRectangles(board, x, y, opponentId) * 3
+
+    // Deny territory control
+    denialValue += this.countOpponentTerritoryDenied(board, x, y, opponentId) * 1.5
+
+    return denialValue
+  }
+
+  static evaluateTerritorialBlocking(board, x, y) {
+    let blockingValue = 0
+    const opponentId = 1
+
+    // Count opponent pieces that would be isolated
+    blockingValue += this.countOpponentPiecesIsolated(board, x, y, opponentId) * 2
+
+    // Block opponent expansion into empty areas
+    blockingValue += this.evaluateExpansionBlocking(board, x, y, opponentId) * 1.5
+
+    return blockingValue
+  }
+
+  static evaluateStrategicDestruction(board, x, y) {
+    let destructionValue = 0
+
+    // Destroy opponent's positional advantages
+    if (this.destroysOpponentPosition(board, x, y)) {
+      destructionValue += 6
+    }
+
+    // Force opponent into bad positions
+    if (this.forcesOpponentIntoCorner(board, x, y)) {
+      destructionValue += 4
+    }
+
+    return destructionValue
+  }
+
+  static evaluateHighValueAreaDenial(board, x, y) {
+    let areaValue = 0
+
+    // High value for center control
+    if (this.isCentralPosition(board, x, y)) {
+      areaValue += 3
+    }
+
+    // High value for corner/edge control
+    if (this.isCornerOrEdge(board, x, y)) {
+      areaValue += 4
+    }
+
+    // High value for controlling large empty areas
+    const emptyAreaSize = this.getLargestNearbyEmptyArea(board, x, y)
+    areaValue += Math.min(emptyAreaSize * 0.3, 4)
+
+    return areaValue
+  }
+
+  static evaluateFuturePlacementDenial(board, x, y) {
+    let denialValue = 0
+
+    // Count how many opponent placement options this eliminates
+    const placementOptions = this.countNearbyPlacementOptions(board, x, y, 1)
+    denialValue += placementOptions * 0.5
+
+    // Special bonus for eliminating large piece placement options
+    if (this.preventsLargePiecePlacement(board, x, y)) {
+      denialValue += 3
+    }
+
+    return denialValue
+  }
+
+  static evaluateExpansionPathBlocking(board, x, y) {
+    let blockingValue = 0
+    const opponentId = 1
+
+    // Block paths between opponent territories
+    if (this.blocksOpponentPath(board, x, y, opponentId)) {
+      blockingValue += 4
+    }
+
+    // Block access to board edges
+    if (this.blocksEdgeAccess(board, x, y)) {
+      blockingValue += 2
+    }
+
+    return blockingValue
+  }
+
+  static isCriticalChokepoint(board, x, y) {
+    // More sophisticated chokepoint detection
+    const emptyAreas = this.countConnectedEmptyAreas(board, x, y)
+    return emptyAreas >= 3 || this.connectsMultipleRegions(board, x, y)
+  }
+
+  static controlsPassage(board, x, y) {
+    // Check if this position controls movement between regions
+    return this.isNarrowPassage(board, x, y) || this.isBridgePosition(board, x, y)
+  }
+
+  /**
+   * Additional helper methods for aggressive behavior
+   */
+
+  static wouldDestroyOpponentFormation(board, x, y, size, opponentId) {
+    // Check if placing here destroys an existing opponent formation
+    let nearbyOpponentCells = 0
+    for (let dx = -size; dx <= size; dx++) {
+      for (let dy = -size; dy <= size; dy++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            nearbyOpponentCells++
+          }
+        }
+      }
+    }
+    return nearbyOpponentCells >= size
+  }
+
+  static countPotentialOpponentLines(board, x, y, opponentId) {
+    let lineCount = 0
+
+    // Check horizontal and vertical potential lines
+    for (const [dx, dy] of [[1,0], [0,1], [1,1], [1,-1]]) {
+      if (this.wouldBlockOpponentLine(board, x, y, dx, dy, opponentId)) {
+        lineCount++
+      }
+    }
+
+    return lineCount
+  }
+
+  static countPotentialOpponentRectangles(board, x, y, opponentId) {
+    let rectCount = 0
+
+    for (let size = 2; size <= 4; size++) {
+      if (this.wouldBlockRectangle(board, x, y, size, opponentId)) {
+        rectCount++
+      }
+    }
+
+    return rectCount
+  }
+
+  static countOpponentTerritoryDenied(board, x, y, opponentId) {
+    let territoryDenied = 0
+
+    // Count opponent pieces within influence range
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            territoryDenied++
+          }
+        }
+      }
+    }
+
+    return territoryDenied
+  }
+
+  static countOpponentPiecesIsolated(board, x, y, opponentId) {
+    // Count opponent pieces that would be cut off by this placement
+    let isolated = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === opponentId) {
+          if (this.wouldIsolatePiece(board, nx, ny, x, y, opponentId)) {
+            isolated++
+          }
+        }
+      }
+    }
+
+    return isolated
+  }
+
+  static evaluateExpansionBlocking(board, x, y, opponentId) {
+    let blocking = 0
+
+    // Check how many opponent expansion routes this blocks
+    const expansionRoutes = this.countOpponentExpansionRoutes(board, x, y, opponentId)
+    blocking += expansionRoutes * 0.8
+
+    return blocking
+  }
+
+  static destroysOpponentPosition(board, x, y) {
+    // Simplified check for destroying opponent positional advantage
+    const opponentId = 1
+    let nearbyOpponents = 0
+
+    for (let nx = x - 1; nx <= x + 1; nx++) {
+      for (let ny = y - 1; ny <= y + 1; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            nearbyOpponents++
+          }
+        }
+      }
+    }
+
+    return nearbyOpponents >= 3
+  }
+
+  static forcesOpponentIntoCorner(board, x, y) {
+    // Check if this move limits opponent to corner/edge positions
+    return this.isCornerOrEdge(board, x, y) && this.reducesOpponentOptions(board, x, y)
+  }
+
+  static getLargestNearbyEmptyArea(board, x, y) {
+    let largestArea = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          const areaSize = this.countConnectedEmptyArea(board, nx, ny, new Set())
+          largestArea = Math.max(largestArea, areaSize)
+        }
+      }
+    }
+
+    return largestArea
+  }
+
+  static countNearbyPlacementOptions(board, x, y, opponentId) {
+    // Count placement options in nearby area
+    let options = 0
+
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === 0) {
+            options++
+          }
+        }
+      }
+    }
+
+    return options
+  }
+
+  static preventsLargePiecePlacement(board, x, y) {
+    // Check if this prevents placement of large pieces (4+ cells)
+    const requiredSpace = 4
+    let availableSpace = 0
+
+    for (let dx = 0; dx < 3; dx++) {
+      for (let dy = 0; dy < 3; dy++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < board.cols && ny < board.rows && board.grid[ny][nx] === 0) {
+          availableSpace++
+        }
+      }
+    }
+
+    return availableSpace >= requiredSpace
+  }
+
+  static blocksOpponentPath(board, x, y, opponentId) {
+    // Check if this blocks movement between opponent territories
+    const nearbyOpponentGroups = this.countNearbyOpponentGroups(board, x, y, opponentId)
+    return nearbyOpponentGroups >= 2
+  }
+
+  static blocksEdgeAccess(board, x, y) {
+    // Check if this blocks access to board edges
+    const distanceToEdge = Math.min(x, y, board.cols - 1 - x, board.rows - 1 - y)
+    return distanceToEdge <= 2
+  }
+
+  static connectsMultipleRegions(board, x, y) {
+    // Check if this position connects multiple empty regions
+    return this.countConnectedEmptyAreas(board, x, y) >= 2
+  }
+
+  static isNarrowPassage(board, x, y) {
+    // Check if this is a narrow passage between areas
+    let emptyNeighbors = 0
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          emptyNeighbors++
+        }
+      }
+    }
+    return emptyNeighbors === 2
+  }
+
+  static isBridgePosition(board, x, y) {
+    // Check if this position bridges two areas
+    const [left, right, top, bottom] = [
+      x > 0 ? board.grid[y][x-1] : -1,
+      x < board.cols-1 ? board.grid[y][x+1] : -1,
+      y > 0 ? board.grid[y-1][x] : -1,
+      y < board.rows-1 ? board.grid[y+1][x] : -1
+    ]
+
+    // Bridge if empty spaces on opposite sides
+    return (left === 0 && right === 0) || (top === 0 && bottom === 0)
+  }
+
+  static wouldBlockOpponentLine(board, x, y, dx, dy, opponentId) {
+    // Check if placing here would block a potential opponent line
+    let opponentCells = 0
+
+    // Check in both directions
+    for (let direction = -1; direction <= 1; direction += 2) {
+      let checkX = x + direction * dx
+      let checkY = y + direction * dy
+      let distance = 0
+
+      while (checkX >= 0 && checkX < board.cols && checkY >= 0 && checkY < board.rows && distance < 3) {
+        if (board.grid[checkY][checkX] === opponentId) {
+          opponentCells++
+        } else if (board.grid[checkY][checkX] !== 0) {
+          break
+        }
+        checkX += direction * dx
+        checkY += direction * dy
+        distance++
+      }
+    }
+
+    return opponentCells >= 2
+  }
+
+  static wouldIsolatePiece(board, pieceX, pieceY, blockX, blockY, opponentId) {
+    // Temporarily place the block and check if piece becomes isolated
+    const originalValue = board.grid[blockY][blockX]
+    board.grid[blockY][blockX] = 2 // AI player
+
+    const isolated = this.isPieceIsolated(board, pieceX, pieceY, opponentId)
+
+    board.grid[blockY][blockX] = originalValue
+    return isolated
+  }
+
+  static isPieceIsolated(board, x, y, playerId) {
+    // Check if piece has connections to other pieces of same player
+    const visited = new Set()
+    const connectedPieces = this.countConnectedPieces(board, x, y, playerId, visited)
+    return connectedPieces <= 1
+  }
+
+  static countConnectedPieces(board, x, y, playerId, visited) {
+    const key = `${x},${y}`
+    if (visited.has(key)) return 0
+    if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
+    if (board.grid[y][x] !== playerId) return 0
+
+    visited.add(key)
+    let count = 1
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      count += this.countConnectedPieces(board, x + dx, y + dy, playerId, visited)
+    }
+
+    return count
+  }
+
+  static countOpponentExpansionRoutes(board, x, y, opponentId) {
+    // Count potential expansion paths this position would block
+    let routes = 0
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === 0) {
+          // Check if this connects to opponent territory
+          if (this.connectsToOpponentTerritory(board, nx, ny, opponentId)) {
+            routes++
+          }
+        }
+      }
+    }
+
+    return routes
+  }
+
+  static connectsToOpponentTerritory(board, x, y, opponentId) {
+    // Check if this empty space connects to opponent pieces
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+        if (board.grid[ny][nx] === opponentId) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  static reducesOpponentOptions(board, x, y) {
+    // Check if placing here significantly reduces opponent's future options
+    const nearbyEmptySpaces = this.countNearbyEmptySpaces(board, x, y)
+    return nearbyEmptySpaces >= 4 // High-value position
+  }
+
+  static countNearbyEmptySpaces(board, x, y) {
+    let empty = 0
+
+    for (let nx = x - 1; nx <= x + 1; nx++) {
+      for (let ny = y - 1; ny <= y + 1; ny++) {
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === 0) {
+            empty++
+          }
+        }
+      }
+    }
+
+    return empty
+  }
+
+  static countNearbyOpponentGroups(board, x, y, opponentId) {
+    // Count distinct opponent groups near this position
+    const visited = new Set()
+    let groups = 0
+
+    for (let nx = x - 2; nx <= x + 2; nx++) {
+      for (let ny = y - 2; ny <= y + 2; ny++) {
+        const key = `${nx},${ny}`
+        if (!visited.has(key) && nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          if (board.grid[ny][nx] === opponentId) {
+            this.markOpponentGroup(board, nx, ny, opponentId, visited)
+            groups++
+          }
+        }
+      }
+    }
+
+    return groups
+  }
+
+  static markOpponentGroup(board, x, y, opponentId, visited) {
+    const key = `${x},${y}`
+    if (visited.has(key)) return
+    if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return
+    if (board.grid[y][x] !== opponentId) return
+
+    visited.add(key)
+
+    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+      this.markOpponentGroup(board, x + dx, y + dy, opponentId, visited)
+    }
   }
 
   /**

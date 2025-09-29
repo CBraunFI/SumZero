@@ -237,7 +237,7 @@ export class MenuUI {
       case 'normal':
         return 'Smart AI with enhanced pattern recognition and strategic depth.'
       case 'hard':
-        return 'Master-level AI with deep analysis, endgame planning, and ruthless optimization.'
+        return 'RUTHLESS AI that actively sabotages your strategy, blocks your patterns, and aggressively denies opportunities.'
       default:
         return ''
     }
