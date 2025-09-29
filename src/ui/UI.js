@@ -731,35 +731,33 @@ export class UI {
 
         /* Enhanced Game Ending Announcement */
         .game-ending-announcement {
-          background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-          border: 3px solid #e74c3c;
-          border-radius: 12px;
+          background: #f8f8f8;
+          border: 1px solid #e8e8e8;
+          border-radius: 4px;
           padding: 20px;
           margin: 20px 0;
           text-align: center;
-          color: white;
-          box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
-          animation: victoryPulse 2s ease-in-out infinite alternate;
+          color: #333333;
         }
 
         .victory-title {
           font-size: 2.5em;
-          font-weight: bold;
+          font-weight: 300;
           margin: 0 0 10px 0;
-          text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
         }
 
         .victory-subtitle {
           font-size: 1.2em;
           margin: 0 0 15px 0;
-          opacity: 0.9;
+          color: #666666;
         }
 
         .final-score-display {
-          background: rgba(255,255,255,0.2);
-          border-radius: 8px;
+          background: #ffffff;
+          border-radius: 4px;
           padding: 15px;
           margin: 15px 0;
+          border: 1px solid #e8e8e8;
         }
 
         .final-score-row {
@@ -771,18 +769,19 @@ export class UI {
         }
 
         .winner-score {
-          font-weight: bold;
-          color: #fff200;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+          font-weight: 600;
+          color: #333333;
         }
 
         .game-ending-reason {
-          background: rgba(255,255,255,0.15);
-          border-radius: 6px;
+          background: #ffffff;
+          border-radius: 4px;
           padding: 10px;
           margin: 10px 0;
           font-style: italic;
           font-size: 0.95em;
+          color: #666666;
+          border: 1px solid #e8e8e8;
         }
 
         @keyframes victoryPulse {
@@ -807,8 +806,7 @@ export class UI {
           display: flex;
           align-items: center;
           justify-content: center;
-          backdrop-filter: blur(8px);
-          animation: overlayFadeIn 1s ease-out;
+          animation: overlayFadeIn 0.3s ease-out;
         }
 
         .overlay-background {
@@ -817,51 +815,49 @@ export class UI {
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.85);
+          background: rgba(0, 0, 0, 0.8);
         }
 
         .overlay-content {
           position: relative;
           text-align: center;
           padding: 40px;
-          border-radius: 20px;
+          border-radius: 8px;
           max-width: 500px;
           width: 90%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-          animation: overlaySlideIn 1s ease-out 0.3s both;
+          border: 1px solid #e8e8e8;
+          animation: overlaySlideIn 0.5s ease-out both;
         }
 
         .you-win-overlay {
-          background: linear-gradient(135deg, #28a745, #20c997, #17a2b8);
-          color: white;
+          background: #ffffff;
+          color: #333333;
         }
 
         .you-lose-overlay {
-          background: linear-gradient(135deg, #dc3545, #e74c3c, #c0392b);
-          color: white;
+          background: #ffffff;
+          color: #333333;
         }
 
         .overlay-title {
-          font-size: 4rem;
-          font-weight: bold;
+          font-size: 3rem;
+          font-weight: 300;
           margin: 0 0 20px 0;
-          text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
-          animation: titleBounce 2s ease-in-out infinite;
         }
 
         .overlay-subtitle {
           font-size: 1.5rem;
           margin: 0 0 30px 0;
-          opacity: 0.95;
-          font-weight: 500;
+          color: #666666;
+          font-weight: 400;
         }
 
         .overlay-scores {
-          background: rgba(255,255,255,0.15);
-          border-radius: 12px;
+          background: #f8f8f8;
+          border-radius: 4px;
           padding: 20px;
           margin: 20px 0;
-          backdrop-filter: blur(5px);
+          border: 1px solid #e8e8e8;
         }
 
         .overlay-score-row {
@@ -874,19 +870,20 @@ export class UI {
         }
 
         .overlay-winner-score {
-          font-weight: bold;
-          color: #fff200;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+          font-weight: 600;
+          color: #333333;
           font-size: 1.3rem;
         }
 
         .overlay-reason {
-          background: rgba(255,255,255,0.1);
-          border-radius: 8px;
+          background: #f8f8f8;
+          border-radius: 4px;
           padding: 15px;
           margin: 20px 0;
           font-style: italic;
           font-size: 1rem;
+          color: #666666;
+          border: 1px solid #e8e8e8;
         }
 
         .overlay-buttons {
@@ -899,35 +896,31 @@ export class UI {
         .overlay-button {
           padding: 12px 25px;
           border: none;
-          border-radius: 8px;
+          border-radius: 4px;
           font-size: 1rem;
-          font-weight: bold;
+          font-weight: 400;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.15s ease;
           min-width: 120px;
         }
 
         .overlay-button-primary {
-          background: rgba(255,255,255,0.9);
-          color: #2c3e50;
+          background: #333333;
+          color: #ffffff;
         }
 
         .overlay-button-primary:hover {
-          background: rgba(255,255,255,1);
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+          background: #555555;
         }
 
         .overlay-button-secondary {
-          background: transparent;
-          color: white;
-          border: 2px solid rgba(255,255,255,0.5);
+          background: #ffffff;
+          color: #333333;
+          border: 1px solid #dddddd;
         }
 
         .overlay-button-secondary:hover {
-          background: rgba(255,255,255,0.1);
-          border-color: rgba(255,255,255,0.8);
-          transform: translateY(-2px);
+          background: #f0f0f0;
         }
 
         @keyframes overlayFadeIn {
@@ -942,11 +935,11 @@ export class UI {
         @keyframes overlaySlideIn {
           from {
             opacity: 0;
-            transform: translateY(-50px) scale(0.9);
+            transform: translateY(-20px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
@@ -2025,7 +2018,7 @@ export class UI {
 
     return `
       <div class="game-ending-announcement">
-        <div class="victory-title">🎉 GAME OVER 🎉</div>
+        <div class="victory-title">GAME OVER</div>
         <div class="victory-subtitle">Player ${winner} Wins!</div>
 
         <div class="final-score-display">
@@ -2072,7 +2065,7 @@ export class UI {
     // Determine if player won or lost (Player 1 is the human player)
     const playerWon = winner === 1
     const overlayClass = playerWon ? 'you-win-overlay' : 'you-lose-overlay'
-    const title = playerWon ? '🎉 YOU WIN! 🎉' : '💔 YOU LOSE 💔'
+    const title = playerWon ? 'YOU WIN' : 'YOU LOSE'
     const subtitle = playerWon ?
       'Congratulations! You achieved victory!' :
       'Better luck next time!'
