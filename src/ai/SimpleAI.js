@@ -13,38 +13,40 @@ import { pieceLibrary } from '../core/pieces/PieceLibrary.js'
 export class SimpleAI {
 
   /**
-   * Make a draft decision for the AI player
+   * Make a draft decision for the AI player with timeout protection
    * @param {Object} gameState - Current game state
    * @param {number} playerId - AI player ID
    * @returns {string|null} - Piece ID to buy or null to pass
    */
   static makeDraftDecision(gameState, playerId) {
-    const player = gameState.players[playerId]
-    const availablePieces = getAvailablePieces(gameState, playerId)
-    const difficulty = gameState.config?.aiDifficulty || 'normal'
+    return this.withTimeout(() => {
+      const player = gameState.players[playerId]
+      const availablePieces = getAvailablePieces(gameState, playerId)
+      const difficulty = gameState.config?.aiDifficulty || 'normal'
 
-    if (availablePieces.length === 0) {
-      return null // Pass if no pieces available
-    }
+      if (availablePieces.length === 0) {
+        return null // Pass if no pieces available
+      }
 
-    // Filter pieces we can afford
-    const affordablePieces = availablePieces.filter(pieceId => {
-      const piece = pieceLibrary.get(pieceId)
-      return piece.cost <= player.budget
-    })
+      // Filter pieces we can afford
+      const affordablePieces = availablePieces.filter(pieceId => {
+        const piece = pieceLibrary.get(pieceId)
+        return piece.cost <= player.budget
+      })
 
-    if (affordablePieces.length === 0) {
-      return null // Pass if can't afford anything
-    }
+      if (affordablePieces.length === 0) {
+        return null // Pass if can't afford anything
+      }
 
-    // Apply difficulty-based decision making
-    if (difficulty === 'easy') {
-      return this.makeEasyDraftDecision(affordablePieces)
-    } else if (difficulty === 'hard') {
-      return this.makeHardDraftDecision(affordablePieces, gameState, playerId)
-    } else {
-      return this.makeNormalDraftDecision(affordablePieces)
-    }
+      // Apply difficulty-based decision making
+      if (difficulty === 'easy') {
+        return this.makeEasyDraftDecision(affordablePieces)
+      } else if (difficulty === 'hard') {
+        return this.makeHardDraftDecision(affordablePieces, gameState, playerId)
+      } else {
+        return this.makeNormalDraftDecision(affordablePieces)
+      }
+    }, null) // Fallback to pass
   }
 
   /**
@@ -299,27 +301,30 @@ export class SimpleAI {
   }
 
   /**
-   * Make a placement decision for the AI player
+   * Make a placement decision for the AI player with timeout protection
    * @param {Object} gameState - Current game state
    * @param {number} playerId - AI player ID
    * @returns {Object|null} - Move object or null if no moves available
    */
   static makePlacementDecision(gameState, playerId) {
     const legalMoves = enumerateLegalMoves(gameState, playerId)
-    const difficulty = gameState.config?.aiDifficulty || 'normal'
 
     if (legalMoves.length === 0) {
       return null // No legal moves available
     }
 
-    // Apply difficulty-based placement strategy
-    if (difficulty === 'easy') {
-      return this.makeEasyPlacementDecision(legalMoves, gameState)
-    } else if (difficulty === 'hard') {
-      return this.makeHardPlacementDecision(legalMoves, gameState)
-    } else {
-      return this.makeNormalPlacementDecision(legalMoves, gameState)
-    }
+    return this.withTimeout(() => {
+      const difficulty = gameState.config?.aiDifficulty || 'normal'
+
+      // Apply difficulty-based placement strategy
+      if (difficulty === 'easy') {
+        return this.makeEasyPlacementDecision(legalMoves, gameState)
+      } else if (difficulty === 'hard') {
+        return this.makeHardPlacementDecision(legalMoves, gameState)
+      } else {
+        return this.makeNormalPlacementDecision(legalMoves, gameState)
+      }
+    }, legalMoves[0]) // Fallback to first legal move
   }
 
   /**
@@ -367,6 +372,9 @@ export class SimpleAI {
     let bestScore = -1
 
     for (const move of legalMoves) {
+      // Abort if taking too long
+      if (this.shouldAbortComputation()) break
+
       const piece = pieceLibrary.get(move.pieceId)
       let score = this.evaluateMove(gameState, move, piece)
 
@@ -1197,7 +1205,10 @@ export class SimpleAI {
     return this.countConnectedEmptyAreas(board, x, y) > 1
   }
 
-  static countConnectedEmptyArea(board, x, y, visited) {
+  static countConnectedEmptyArea(board, x, y, visited, depth = 0) {
+    // Prevent infinite recursion and excessive computation
+    if (depth > 50 || this.shouldAbortComputation()) return 0
+
     const key = `${x},${y}`
     if (visited.has(key)) return 0
     if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
@@ -1207,34 +1218,48 @@ export class SimpleAI {
     let area = 1
 
     for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
-      area += this.countConnectedEmptyArea(board, x + dx, y + dy, visited)
+      if (this.shouldAbortComputation()) break
+      area += this.countConnectedEmptyArea(board, x + dx, y + dy, visited, depth + 1)
     }
 
     return area
   }
 
   static countConnectedEmptyAreas(board, x, y) {
+    // Abort if computation is taking too long
+    if (this.shouldAbortComputation()) return 1
+
+    // Safely check bounds
+    if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
+
     // Temporarily block this position and count separate empty areas
     const originalValue = board.grid[y][x]
-    board.grid[y][x] = -1
 
-    let areas = 0
-    const globalVisited = new Set()
+    try {
+      board.grid[y][x] = -1
 
-    for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
-      const nx = x + dx
-      const ny = y + dy
-      if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
-        const key = `${nx},${ny}`
-        if (!globalVisited.has(key) && board.grid[ny][nx] === 0) {
-          this.countConnectedEmptyArea(board, nx, ny, globalVisited)
-          areas++
+      let areas = 0
+      const globalVisited = new Set()
+
+      for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+        if (this.shouldAbortComputation()) break
+
+        const nx = x + dx
+        const ny = y + dy
+        if (nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
+          const key = `${nx},${ny}`
+          if (!globalVisited.has(key) && board.grid[ny][nx] === 0) {
+            this.countConnectedEmptyArea(board, nx, ny, globalVisited)
+            areas++
+          }
         }
       }
-    }
 
-    board.grid[y][x] = originalValue
-    return areas
+      return areas
+    } finally {
+      // Always restore the original value
+      board.grid[y][x] = originalValue
+    }
   }
 
   static canFitPieceOfSize(board, x, y, size) {
@@ -1338,6 +1363,9 @@ export class SimpleAI {
     let sabotageScore = 0
 
     for (const [dx, dy] of piece.relCells) {
+      // Abort if taking too long
+      if (this.shouldAbortComputation()) break
+
       const x = anchorX + dx
       const y = anchorY + dy
 
@@ -1800,7 +1828,10 @@ export class SimpleAI {
     return connectedPieces <= 1
   }
 
-  static countConnectedPieces(board, x, y, playerId, visited) {
+  static countConnectedPieces(board, x, y, playerId, visited, depth = 0) {
+    // Prevent infinite recursion and excessive computation
+    if (depth > 50 || this.shouldAbortComputation()) return 0
+
     const key = `${x},${y}`
     if (visited.has(key)) return 0
     if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return 0
@@ -1810,7 +1841,8 @@ export class SimpleAI {
     let count = 1
 
     for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
-      count += this.countConnectedPieces(board, x + dx, y + dy, playerId, visited)
+      if (this.shouldAbortComputation()) break
+      count += this.countConnectedPieces(board, x + dx, y + dy, playerId, visited, depth + 1)
     }
 
     return count
@@ -1873,26 +1905,35 @@ export class SimpleAI {
   }
 
   static countNearbyOpponentGroups(board, x, y, opponentId) {
-    // Count distinct opponent groups near this position
+    // Count distinct opponent groups near this position (simplified for performance)
+    if (this.shouldAbortComputation()) return 0
+
     const visited = new Set()
     let groups = 0
 
-    for (let nx = x - 2; nx <= x + 2; nx++) {
-      for (let ny = y - 2; ny <= y + 2; ny++) {
+    // Reduced search area for performance
+    for (let nx = x - 1; nx <= x + 1; nx++) {
+      for (let ny = y - 1; ny <= y + 1; ny++) {
+        if (this.shouldAbortComputation()) break
+
         const key = `${nx},${ny}`
         if (!visited.has(key) && nx >= 0 && nx < board.cols && ny >= 0 && ny < board.rows) {
           if (board.grid[ny][nx] === opponentId) {
-            this.markOpponentGroup(board, nx, ny, opponentId, visited)
+            this.markOpponentGroup(board, nx, ny, opponentId, visited, 0)
             groups++
           }
         }
       }
+      if (this.shouldAbortComputation()) break
     }
 
     return groups
   }
 
-  static markOpponentGroup(board, x, y, opponentId, visited) {
+  static markOpponentGroup(board, x, y, opponentId, visited, depth = 0) {
+    // Prevent infinite recursion and excessive computation
+    if (depth > 50 || this.shouldAbortComputation()) return
+
     const key = `${x},${y}`
     if (visited.has(key)) return
     if (x < 0 || x >= board.cols || y < 0 || y >= board.rows) return
@@ -1901,8 +1942,51 @@ export class SimpleAI {
     visited.add(key)
 
     for (const [dx, dy] of [[-1,0], [1,0], [0,-1], [0,1]]) {
-      this.markOpponentGroup(board, x + dx, y + dy, opponentId, visited)
+      if (this.shouldAbortComputation()) break
+      this.markOpponentGroup(board, x + dx, y + dy, opponentId, visited, depth + 1)
     }
+  }
+
+  /**
+   * Execute a function with timeout protection
+   * @param {Function} fn - Function to execute
+   * @param {any} fallback - Fallback value if timeout occurs
+   * @param {number} timeout - Timeout in milliseconds (default: 1000)
+   * @returns {any} - Function result or fallback
+   */
+  static withTimeout(fn, fallback, timeout = 1000) {
+    const startTime = Date.now()
+
+    try {
+      // Set a simple time check for expensive operations
+      this.computationStart = startTime
+      this.maxComputationTime = timeout
+
+      const result = fn()
+
+      // Check if we exceeded the time limit
+      if (Date.now() - startTime > timeout) {
+        console.warn(`AI computation took ${Date.now() - startTime}ms, using fallback`)
+        return fallback
+      }
+
+      return result
+    } catch (error) {
+      console.error('AI computation error:', error)
+      return fallback
+    } finally {
+      this.computationStart = null
+      this.maxComputationTime = null
+    }
+  }
+
+  /**
+   * Check if AI computation should be aborted due to timeout
+   * @returns {boolean} - True if should abort
+   */
+  static shouldAbortComputation() {
+    if (!this.computationStart || !this.maxComputationTime) return false
+    return (Date.now() - this.computationStart) > this.maxComputationTime
   }
 
   /**
