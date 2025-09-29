@@ -1391,7 +1391,7 @@ export class UI {
       color: #666;
       border-top: 1px solid #eee;
     `
-    footer.innerHTML = '<a href="https://www.ctnb.eu" target="_blank" style="color: #666; text-decoration: none;">(c) ctnb 2025</a>'
+    footer.innerHTML = '(c) <a href="https://www.ctnb.eu" target="_blank" style="color: #666; text-decoration: underline;">ctnb</a> 2025'
     wrapper.appendChild(footer)
 
     this.container.appendChild(wrapper)
@@ -2090,6 +2090,9 @@ export class UI {
           <button class="overlay-button overlay-button-secondary" onclick="window.ui.closeGameEndingOverlay()">
             Close
           </button>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.7);">
+          (c) <a href="https://www.ctnb.eu" target="_blank" style="color: rgba(255,255,255,0.8); text-decoration: underline;">ctnb</a> 2025
         </div>
       </div>
     `
