@@ -178,6 +178,16 @@ export class MenuUI {
         <button class="start-btn" onclick="window.menuUI.startGame()">
           Start Game
         </button>
+
+        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+          <button class="start-btn" style="background: #e67e22; margin: 0; padding: 10px 20px; font-size: 0.9em;" onclick="window.menuUI.showTutorial()">
+            📚 Quick Tutorial
+          </button>
+        </div>
+
+        <div style="text-align: center; margin-top: 15px; font-size: 12px; color: rgba(255,255,255,0.7);">
+          <a href="https://www.ctnb.eu" target="_blank" style="color: rgba(255,255,255,0.8); text-decoration: none;">(c) ctnb 2025</a>
+        </div>
       </div>
     `
 
@@ -223,11 +233,11 @@ export class MenuUI {
   getDifficultyDescription() {
     switch (this.selectedDifficulty) {
       case 'easy':
-        return 'AI makes occasional mistakes and gives you advantages.'
+        return 'AI makes many mistakes - good for learning the game.'
       case 'normal':
-        return 'Balanced AI that provides a fair challenge.'
+        return 'Smart AI with enhanced pattern recognition and strategic depth.'
       case 'hard':
-        return 'Advanced AI with superior strategy and planning.'
+        return 'Master-level AI with deep analysis, endgame planning, and ruthless optimization.'
       default:
         return ''
     }
@@ -245,5 +255,92 @@ export class MenuUI {
       default:
         return ''
     }
+  }
+
+  /**
+   * Show tutorial overlay
+   */
+  showTutorial() {
+    const tutorialOverlay = document.createElement('div')
+    tutorialOverlay.id = 'tutorial-overlay'
+    tutorialOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `
+
+    tutorialOverlay.innerHTML = `
+      <div style="
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+        margin: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      ">
+        <h2 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">📚 SumZero Quick Tutorial</h2>
+
+        <div style="line-height: 1.6; color: #444;">
+          <h3 style="color: #3498db; margin-top: 20px;">🎯 Goal</h3>
+          <p>Score the most points by creating patterns with your pieces before both players are blocked.</p>
+
+          <h3 style="color: #3498db; margin-top: 20px;">🎮 How to Play</h3>
+          <ol>
+            <li><strong>Draft Phase:</strong> Take turns buying pieces with your budget</li>
+            <li><strong>Placement Phase:</strong> Place pieces on the board to form scoring patterns</li>
+            <li><strong>Game End:</strong> When both players can't move, highest score wins!</li>
+          </ol>
+
+          <h3 style="color: #3498db; margin-top: 20px;">📊 Scoring Patterns</h3>
+          <ul>
+            <li><strong>Lines:</strong> 4+ cells in a row = 5-15+ points</li>
+            <li><strong>Rectangles:</strong> Solid rectangles = 7-18 points</li>
+            <li><strong>Squares:</strong> Perfect squares = 10-30 points</li>
+            <li><strong>Control Areas:</strong> Corners/edges = 12-25 points</li>
+          </ul>
+
+          <h3 style="color: #3498db; margin-top: 20px;">💡 Pro Tips</h3>
+          <ul>
+            <li>Buy larger pieces early - they're more powerful</li>
+            <li>Block your opponent's good spots</li>
+            <li>Control corners and edges for bonus points</li>
+            <li>Plan patterns ahead of time</li>
+          </ul>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <button onclick="document.getElementById('tutorial-overlay').remove()" style="
+              background: #27ae60;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              padding: 12px 30px;
+              font-size: 16px;
+              cursor: pointer;
+              transition: background 0.3s;
+            " onmouseover="this.style.background='#229954'" onmouseout="this.style.background='#27ae60'">
+              Got it! Let's Play 🚀
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+
+    // Close on background click
+    tutorialOverlay.addEventListener('click', (e) => {
+      if (e.target === tutorialOverlay) {
+        tutorialOverlay.remove()
+      }
+    })
+
+    document.body.appendChild(tutorialOverlay)
   }
 }

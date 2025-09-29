@@ -1380,6 +1380,20 @@ export class UI {
 
     this.renderGameStatus(wrapper)
     this.renderGameContent(wrapper)
+
+    // Add copyright footer
+    const footer = document.createElement('div')
+    footer.style.cssText = `
+      text-align: center;
+      padding: 10px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #eee;
+    `
+    footer.innerHTML = '<a href="https://www.ctnb.eu" target="_blank" style="color: #666; text-decoration: none;">(c) ctnb 2025</a>'
+    wrapper.appendChild(footer)
+
     this.container.appendChild(wrapper)
 
     // Check if AI should make a move
