@@ -39,6 +39,15 @@ export class MenuUI {
           font-size: 4em;
           font-weight: 300;
           margin-bottom: 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+        .menu-logo {
+          width: 120px;
+          height: 120px;
+          object-fit: contain;
         }
         .menu-content {
           background: #f8f8f8;
@@ -112,6 +121,10 @@ export class MenuUI {
             font-size: 3em;
             margin-bottom: 30px;
           }
+          .menu-logo {
+            width: 100px;
+            height: 100px;
+          }
           .menu-content {
             padding: 20px;
             margin: 10px;
@@ -125,7 +138,10 @@ export class MenuUI {
         }
       </style>
 
-      <h1 class="menu-title">SumZero</h1>
+      <h1 class="menu-title">
+        <img src="/logo.png" alt="SumZero Logo" class="menu-logo">
+        SumZero
+      </h1>
 
       <div class="menu-content">
 
