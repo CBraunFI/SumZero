@@ -1,36 +1,29 @@
-const CACHE_NAME = 'sumzero-v1.3.0'
-const urlsToCache = [
+// SumZero Service Worker - Optimized for Vite build
+const CACHE_VERSION = '1.3.2'
+const CACHE_NAME = `sumzero-v${CACHE_VERSION}`
+
+// Core assets to cache immediately on install
+const CORE_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/src/main.js',
-  '/src/ui/UI.js',
-  '/src/ui/MenuUI.js',
-  '/src/core/game/GameService.js',
-  '/src/core/game/GameState.js',
-  '/src/core/scoring/PatternRecognizer.js',
-  '/src/core/scoring/ScoringService.js',
-  '/src/core/draft/DraftService.js',
-  '/src/core/placement/PlacementService.js',
-  '/src/core/pieces/PieceLibrary.js',
-  '/src/core/pieces/PieceDefinitions.js',
-  '/src/core/board/Board.js',
-  '/src/core/board/BoardShapes.js',
-  '/src/core/geometry/Transform.js',
-  '/src/ai/SimpleAI.js',
-  '/src/utils/constants.js',
+  '/src/styles/main.css',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png'
 ]
 
 // Install event - cache resources
 self.addEventListener('install', event => {
-  console.log('SumZero Service Worker: Installing...')
+  console.log(`[SW v${CACHE_VERSION}] Installing...`)
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('SumZero Service Worker: Caching app shell')
-        return cache.addAll(urlsToCache)
+        console.log('[SW] Caching core assets')
+        return cache.addAll(CORE_CACHE)
       })
       .then(() => {
         console.log('SumZero Service Worker: Installed successfully')
@@ -62,54 +55,61 @@ self.addEventListener('activate', event => {
   )
 })
 
-// Fetch event - serve from cache when offline
+// Fetch event - smart caching strategy
 self.addEventListener('fetch', event => {
+  const { request } = event
+  const url = new URL(request.url)
+
   // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return
-  }
+  if (request.method !== 'GET') return
 
-  // Skip chrome-extension and other non-http requests
-  if (!event.request.url.startsWith('http')) {
-    return
-  }
+  // Skip cross-origin requests
+  if (url.origin !== location.origin) return
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version if available
-        if (response) {
-          console.log('SumZero Service Worker: Serving from cache:', event.request.url)
+  // HTML/Navigation: Network-first strategy (always get latest)
+  if (request.mode === 'navigate' || request.destination === 'document' ||
+      request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // Cache the new version
+          const responseClone = response.clone()
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseClone)
+          })
           return response
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          return caches.match(request).then(cached => cached || caches.match('/'))
+        })
+    )
+    return
+  }
+
+  // All other assets: Cache-first strategy (fast performance)
+  event.respondWith(
+    caches.match(request)
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse
         }
 
-        // Otherwise fetch from network
-        console.log('SumZero Service Worker: Fetching from network:', event.request.url)
-        return fetch(event.request).then(response => {
-          // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response
-          }
-
-          // Clone the response for caching
-          const responseToCache = response.clone()
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache)
+        // Not in cache, fetch from network
+        return fetch(request).then(response => {
+          // Only cache successful responses
+          if (response && response.status === 200) {
+            const responseClone = response.clone()
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, responseClone)
             })
-
-          return response
-        }).catch(error => {
-          console.error('SumZero Service Worker: Fetch failed:', error)
-
-          // Return a custom offline page for navigation requests
-          if (event.request.destination === 'document') {
-            return caches.match('/')
           }
-
-          throw error
+          return response
         })
+      })
+      .catch(error => {
+        console.error('[SW] Fetch failed:', error)
+        throw error
       })
   )
 })

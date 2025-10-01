@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" fill="url(#bg)" rx="12.8"/>
+
+  <!-- Grid pattern representing the game board -->
+  <g transform="translate(25.6, 25.6)">
+    <!-- Grid lines -->
+    <line x1="0" y1="25.599999999999998" x2="76.8" y2="25.599999999999998" stroke="#ffffff" stroke-width="1.28" stroke-opacity="0.3"/>
+    <line x1="0" y1="51.199999999999996" x2="76.8" y2="51.199999999999996" stroke="#ffffff" stroke-width="1.28" stroke-opacity="0.3"/>
+    <line x1="25.599999999999998" y1="0" x2="25.599999999999998" y2="76.8" stroke="#ffffff" stroke-width="1.28" stroke-opacity="0.3"/>
+    <line x1="51.199999999999996" y1="0" x2="51.199999999999996" y2="76.8" stroke="#ffffff" stroke-width="1.28" stroke-opacity="0.3"/>
+
+    <!-- Game pieces -->
+    <!-- Player 1 (dark) -->
+    <rect x="2.56" y="2.56" width="20.48" height="20.48" fill="#333333" rx="2.56"/>
+    <rect x="28.16" y="2.56" width="20.48" height="20.48" fill="#333333" rx="2.56"/>
+
+    <!-- Player 2 (light) -->
+    <rect x="28.16" y="28.16" width="20.48" height="20.48" fill="#ffffff" rx="2.56"/>
+    <rect x="53.76" y="28.16" width="20.48" height="20.48" fill="#ffffff" rx="2.56"/>
+    <rect x="2.56" y="53.76" width="20.48" height="20.48" fill="#ffffff" rx="2.56"/>
+  </g>
+
+  <!-- Title text for larger icons -->
+  
+  <text x="64" y="117.76" font-family="Arial, sans-serif" font-size="12.8" font-weight="bold" fill="#ffffff" text-anchor="middle" opacity="0.9">
+    SumZero
+  </text>
+  
+</svg>

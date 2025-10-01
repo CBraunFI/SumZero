@@ -25,6 +25,48 @@ export class UI {
     this.aiThinking = false
     this.overlayShown = false
     this.overlayTimeout = null
+
+    // Set up keyboard controls
+    this.setupKeyboardControls()
+
+    // Set up A2HS prompt
+    this.setupA2HSPrompt()
+  }
+
+  /**
+   * Set up keyboard event listeners for piece transformation
+   */
+  setupKeyboardControls() {
+    document.addEventListener('keydown', (e) => {
+      if (!this.selectedPiece || this.gameState?.phase !== 'placement') return
+
+      switch(e.key.toLowerCase()) {
+        case 'r':
+          e.preventDefault()
+          this.rotatePiece()
+          break
+        case 'f':
+          e.preventDefault()
+          this.flipPiece()
+          break
+        case 'escape':
+          e.preventDefault()
+          this.clearSelection()
+          break
+      }
+    })
+  }
+
+  /**
+   * Set up Add to Home Screen prompt
+   */
+  setupA2HSPrompt() {
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      this.deferredA2HSPrompt = e
+      this.showA2HSBanner()
+    })
   }
 
   /**
@@ -41,1348 +83,6 @@ export class UI {
 
     const wrapper = document.createElement('div')
     wrapper.className = 'game-wrapper'
-    wrapper.innerHTML = `
-      <style>
-        /* Base styles - Mobile first approach */
-        * {
-          box-sizing: border-box;
-        }
-
-        html {
-          -webkit-text-size-adjust: 100%;
-          -ms-text-size-adjust: 100%;
-        }
-
-        body {
-          margin: 0;
-          padding: 0;
-          overflow-x: hidden;
-        }
-
-        .game-wrapper {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          max-width: 100vw;
-          margin: 0 auto;
-          padding: 8px;
-          min-height: 100vh;
-          background: #ffffff;
-        }
-
-        .game-header {
-          text-align: center;
-          margin-bottom: 15px;
-        }
-
-        .game-status {
-          background: #f8f8f8;
-          padding: 12px;
-          border-radius: 4px;
-          margin-bottom: 15px;
-          text-align: center;
-          border: 1px solid #e8e8e8;
-        }
-
-        .game-status h1 {
-          font-size: 1.8em !important;
-          margin: 0 0 10px 0 !important;
-        }
-
-        .game-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .board-section {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .board-container h3 {
-          margin: 0 0 10px 0;
-          font-size: 1.1em;
-        }
-
-        .board {
-          display: grid;
-          gap: 1px;
-          border: 2px solid #333333;
-          width: min(95vw, 350px);
-          height: min(95vw, 350px);
-          background: #333333;
-          padding: 0;
-          margin: 0 auto;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .cell {
-          border: 0.5px solid #333333;
-          cursor: pointer;
-          position: relative;
-          transition: all 0.15s ease;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Touch-friendly hover effects */
-        @media (hover: hover) {
-          .cell:hover {
-            transform: scale(1.05);
-            z-index: 10;
-            border-radius: 2px;
-          }
-        }
-
-        /* Touch feedback for mobile */
-        .cell:active {
-          transform: scale(0.95);
-          transition: transform 0.1s ease;
-        }
-        .cell.light { background: #ffffff; }
-        .cell.dark { background: #ffffff; }
-        .cell.unusable {
-          background: #cccccc;
-          cursor: default;
-          opacity: 0.5;
-        }
-        .cell.unusable:hover {
-          transform: none;
-        }
-        .cell.player1 { background: #333333 !important; }
-        .cell.player2 { background: #888888 !important; }
-        .cell.preview-valid { background: #666666 !important; }
-        .cell.preview-invalid { background: #bbbbbb !important; }
-
-        .side-panel {
-          width: 100%;
-          max-width: 100%;
-          background: #f8f8f8;
-          padding: 12px;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-          order: 2;
-        }
-
-        .piece-gallery {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-          gap: 12px;
-          margin: 20px auto;
-          padding: 20px;
-          width: 100%;
-          max-width: 800px;
-          justify-content: center;
-          align-items: start;
-        }
-
-        /* Arsenal container below board */
-        .arsenal-container {
-          width: 100%;
-          margin-top: 15px;
-          padding: 12px;
-          background: #f8f8f8;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-        }
-
-        .arsenal-container h4 {
-          margin: 0 0 10px 0;
-          text-align: center;
-          color: #333333;
-          font-size: 1.1em;
-        }
-
-        .arsenal-pieces {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 10px;
-          max-width: 100%;
-        }
-
-        .arsenal-miniature {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 8px;
-          background: #ffffff;
-          border: 1px solid #dddddd;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-          min-width: 60px;
-        }
-
-        @media (hover: hover) {
-          .arsenal-miniature:hover {
-            border-color: #888888;
-            transform: translateY(-1px);
-          }
-        }
-
-        .arsenal-miniature:active {
-          transform: scale(0.95);
-          transition: transform 0.1s ease;
-        }
-
-        .arsenal-miniature.selected {
-          border-color: #333333;
-          background: #f0f0f0;
-          transform: translateY(-1px);
-        }
-
-        .miniature-piece {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
-        .miniature-grid {
-          display: grid;
-          gap: 1px;
-          justify-content: center;
-        }
-
-        .miniature-cell {
-          width: 8px;
-          height: 8px;
-          border-radius: 1px;
-        }
-
-        .miniature-cell.filled {
-          background: #333333;
-          border: 1px solid #333333;
-        }
-
-        .miniature-cell.empty {
-          background: transparent;
-        }
-
-        .miniature-label {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-        }
-
-        .piece-name {
-          font-size: 0.75em;
-          font-weight: 600;
-          color: #333333;
-          line-height: 1;
-        }
-
-        .piece-count {
-          font-size: 0.7em;
-          color: #666666;
-          margin-top: 2px;
-        }
-        .piece-tile {
-          background: #ffffff;
-          border: 1px solid #dddddd;
-          border-radius: 4px;
-          padding: 10px;
-          cursor: pointer;
-          text-align: center;
-          min-height: 70px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          transition: all 0.15s ease;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-          font-size: 0.9em;
-        }
-
-        @media (hover: hover) {
-          .piece-tile:hover {
-            border-color: #888888;
-            transform: translateY(-1px);
-          }
-        }
-
-        .piece-tile:active {
-          transform: scale(0.95);
-          transition: transform 0.1s ease;
-        }
-
-        .piece-tile.selected {
-          border-color: #333333;
-          background: #f0f0f0;
-          transform: translateY(-1px);
-        }
-
-        .piece-tile.unavailable {
-          opacity: 0.5;
-          cursor: not-allowed;
-          pointer-events: none;
-        }
-        .piece-preview {
-          display: grid;
-          gap: 0;
-          margin: 5px 0;
-          justify-self: center;
-          border: 1px solid #333333;
-        }
-        .piece-cell {
-          width: 12px;
-          height: 12px;
-          background: #333333;
-          border: 1px solid #333333;
-          box-sizing: border-box;
-        }
-        .controls {
-          margin: 12px 0;
-        }
-
-        .controls-section {
-          margin-bottom: 12px;
-          padding: 12px;
-          background: #ffffff;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-        }
-        .board-controls {
-          margin: 10px 0;
-        }
-        .board-controls-section {
-          text-align: center;
-          padding: 12px;
-          background: #f8f8f8;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-          margin: 0 auto;
-          max-width: min(95vw, 350px);
-        }
-        .selected-piece {
-          font-weight: 500;
-          margin-bottom: 8px;
-          color: #333333;
-        }
-        .transform-buttons {
-          display: flex;
-          gap: 8px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .help-text {
-          color: #666666;
-          font-style: italic;
-        }
-
-        .btn {
-          background: #333333;
-          color: white;
-          border: none;
-          padding: 12px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          margin: 4px 2px;
-          font-size: 14px;
-          font-weight: 400;
-          transition: all 0.15s ease;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-          min-height: 44px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        @media (hover: hover) {
-          .btn:hover {
-            background: #555555;
-          }
-        }
-
-        .btn:active {
-          transform: scale(0.98);
-          transition: transform 0.1s ease;
-        }
-
-        .btn:disabled {
-          background: #cccccc;
-          cursor: not-allowed;
-          pointer-events: none;
-          opacity: 0.6;
-        }
-
-        .btn-new-game {
-          background: #666666;
-          width: 100%;
-          margin-bottom: 8px;
-        }
-
-        @media (hover: hover) {
-          .btn-new-game:hover {
-            background: #777777;
-          }
-        }
-
-        .btn-menu {
-          background: #333333;
-          width: 100%;
-          margin-bottom: 8px;
-        }
-
-        @media (hover: hover) {
-          .btn-menu:hover {
-            background: #555555;
-          }
-        }
-        .player-info {
-          margin-bottom: 12px;
-          padding: 12px;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-          background: #ffffff;
-        }
-
-        .player-info.current {
-          background: #f0f0f0;
-          border: 2px solid #333333;
-        }
-
-        .arsenal-list {
-          margin: 10px 0;
-        }
-
-        .arsenal-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px;
-          margin: 4px 0;
-          background: #f8f8f8;
-          border-radius: 4px;
-          font-size: 0.9em;
-        }
-
-        /* Scoring Display Styles */
-        .score-display {
-          display: flex;
-          justify-content: center;
-          gap: 20px;
-          margin: 10px 0;
-          padding: 10px;
-          background: #ffffff;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-        }
-
-        .score-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 8px 16px;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-
-        .score-item.current-player {
-          background: #e7f3ff;
-          border: 2px solid #007bff;
-          transform: scale(1.05);
-        }
-
-        .score-label {
-          font-size: 0.9em;
-          color: #666;
-          margin-bottom: 4px;
-        }
-
-        .score-value {
-          font-size: 1.4em;
-          font-weight: bold;
-          color: #2c3e50;
-        }
-
-        .pattern-alert {
-          background: linear-gradient(135deg, #28a745, #20c997);
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          text-align: center;
-          margin: 10px 0;
-          animation: patternPulse 2s ease-in-out;
-          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-        }
-
-        .pattern-text {
-          font-weight: 600;
-          font-size: 0.9em;
-        }
-
-        @keyframes patternPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.02); box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4); }
-        }
-
-        /* Pattern Highlighting on Board */
-        .cell.pattern-highlight {
-          background: #ffd700 !important;
-          border: 2px solid #ff8c00 !important;
-          box-shadow: 0 0 10px rgba(255, 215, 0, 0.6) !important;
-          animation: patternGlow 1.5s ease-in-out infinite alternate;
-        }
-
-        @keyframes patternGlow {
-          from { box-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
-          to { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
-        }
-
-        /* Scoring Rules Panel */
-        .scoring-rules {
-          background: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          padding: 12px;
-          margin: 15px 0;
-          font-size: 0.85em;
-        }
-
-        .scoring-rules h4 {
-          margin: 0 0 10px 0;
-          color: #2c3e50;
-          font-size: 1.1em;
-          text-align: center;
-          border-bottom: 1px solid #bdc3c7;
-          padding-bottom: 5px;
-        }
-
-        .rules-category {
-          margin-bottom: 12px;
-        }
-
-        .rules-category h5 {
-          margin: 0 0 6px 0;
-          color: #3498db;
-          font-size: 0.9em;
-          font-weight: bold;
-        }
-
-        .rules-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .rules-list li {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 2px 0;
-          font-size: 0.8em;
-        }
-
-        .pattern-name {
-          color: #34495e;
-        }
-
-        .pattern-points {
-          font-weight: bold;
-          color: #27ae60;
-        }
-
-        .rules-note {
-          background: #e8f4fd;
-          border-left: 3px solid #3498db;
-          padding: 6px 8px;
-          margin-top: 8px;
-          font-size: 0.75em;
-          color: #2c3e50;
-        }
-
-        /* Visual Pattern Display */
-        .pattern-visual {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 4px 0;
-          padding: 6px;
-          background: #f8f9fa;
-          border-radius: 4px;
-        }
-
-        .pattern-shape {
-          display: grid;
-          gap: 1px;
-          background: #dee2e6;
-          border-radius: 2px;
-          padding: 2px;
-          flex-shrink: 0;
-        }
-
-        .pattern-cell {
-          width: 8px;
-          height: 8px;
-          border-radius: 1px;
-        }
-
-        .pattern-cell.filled {
-          background: #007bff;
-        }
-
-        .pattern-cell.empty {
-          background: #e9ecef;
-        }
-
-        .pattern-info {
-          flex: 1;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.8em;
-        }
-
-        .pattern-name {
-          color: #495057;
-          font-weight: 500;
-        }
-
-        .pattern-points {
-          color: #28a745;
-          font-weight: bold;
-        }
-
-        /* Draft Phase Specific Styles */
-        .draft-screen {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          max-width: 100%;
-          margin: 0 auto;
-        }
-
-        .draft-title {
-          text-align: center;
-          color: #2c3e50;
-          margin-bottom: 20px;
-          font-size: 1.8em;
-        }
-
-        .draft-controls {
-          display: flex;
-          justify-content: center;
-          gap: 15px;
-          margin: 20px 0;
-          flex-wrap: wrap;
-        }
-
-        .draft-info {
-          background: #f8f9fa;
-          border-radius: 8px;
-          padding: 15px;
-          margin: 15px auto;
-          max-width: 600px;
-          width: 90%;
-        }
-
-        .players-info {
-          display: flex;
-          justify-content: space-around;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-
-        .player-info {
-          flex: 1;
-          min-width: 200px;
-          text-align: center;
-          padding: 10px;
-          background: white;
-          border-radius: 6px;
-          border: 2px solid #dee2e6;
-        }
-
-        .player-info.current-player {
-          border-color: #007bff;
-          background: #e7f3ff;
-        }
-
-        /* Different pattern shape grids */
-        .pattern-line-4 { grid-template-columns: repeat(4, 1fr); }
-        .pattern-line-5 { grid-template-columns: repeat(5, 1fr); }
-        .pattern-line-6 { grid-template-columns: repeat(6, 1fr); }
-        .pattern-rect-2x3 { grid-template-columns: repeat(2, 1fr); }
-        .pattern-rect-3x2 { grid-template-columns: repeat(3, 1fr); }
-        .pattern-square-3x3 { grid-template-columns: repeat(3, 1fr); }
-        .pattern-square-4x4 {
-          grid-template-columns: repeat(4, 1fr);
-        }
-        .pattern-square-5x5 {
-          grid-template-columns: repeat(5, 1fr);
-        }
-        .pattern-square-5x5 .pattern-cell {
-          width: 6px;
-          height: 6px;
-        }
-        .pattern-corner { grid-template-columns: repeat(3, 1fr); }
-        .pattern-edge { grid-template-columns: repeat(5, 1fr); }
-        .pattern-center { grid-template-columns: repeat(4, 1fr); }
-
-        /* Enhanced Game Ending Announcement */
-        .game-ending-announcement {
-          background: #f8f8f8;
-          border: 1px solid #e8e8e8;
-          border-radius: 4px;
-          padding: 20px;
-          margin: 20px 0;
-          text-align: center;
-          color: #333333;
-        }
-
-        .victory-title {
-          font-size: 2.5em;
-          font-weight: 300;
-          margin: 0 0 10px 0;
-        }
-
-        .victory-subtitle {
-          font-size: 1.2em;
-          margin: 0 0 15px 0;
-          color: #666666;
-        }
-
-        .final-score-display {
-          background: #ffffff;
-          border-radius: 4px;
-          padding: 15px;
-          margin: 15px 0;
-          border: 1px solid #e8e8e8;
-        }
-
-        .final-score-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 8px 0;
-          font-size: 1.1em;
-        }
-
-        .winner-score {
-          font-weight: 600;
-          color: #333333;
-        }
-
-        .game-ending-reason {
-          background: #ffffff;
-          border-radius: 4px;
-          padding: 10px;
-          margin: 10px 0;
-          font-style: italic;
-          font-size: 0.95em;
-          color: #666666;
-          border: 1px solid #e8e8e8;
-        }
-
-        @keyframes victoryPulse {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
-          }
-          100% {
-            transform: scale(1.02);
-            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.5);
-          }
-        }
-
-        /* Full-Screen Game Ending Overlay */
-        .game-ending-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 10000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          animation: overlayFadeIn 0.3s ease-out;
-        }
-
-        .overlay-background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.8);
-        }
-
-        .overlay-content {
-          position: relative;
-          text-align: center;
-          padding: 40px;
-          border-radius: 8px;
-          max-width: 500px;
-          width: 90%;
-          border: 1px solid #e8e8e8;
-          animation: overlaySlideIn 0.5s ease-out both;
-        }
-
-        .you-win-overlay {
-          background: #ffffff;
-          color: #333333;
-        }
-
-        .you-lose-overlay {
-          background: #ffffff;
-          color: #333333;
-        }
-
-        .overlay-title {
-          font-size: 3rem;
-          font-weight: 300;
-          margin: 0 0 20px 0;
-        }
-
-        .overlay-subtitle {
-          font-size: 1.5rem;
-          margin: 0 0 30px 0;
-          color: #666666;
-          font-weight: 400;
-        }
-
-        .overlay-scores {
-          background: #f8f8f8;
-          border-radius: 4px;
-          padding: 20px;
-          margin: 20px 0;
-          border: 1px solid #e8e8e8;
-        }
-
-        .overlay-score-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 12px 0;
-          font-size: 1.2rem;
-          font-weight: 500;
-        }
-
-        .overlay-winner-score {
-          font-weight: 600;
-          color: #333333;
-          font-size: 1.3rem;
-        }
-
-        .overlay-reason {
-          background: #f8f8f8;
-          border-radius: 4px;
-          padding: 15px;
-          margin: 20px 0;
-          font-style: italic;
-          font-size: 1rem;
-          color: #666666;
-          border: 1px solid #e8e8e8;
-        }
-
-        .overlay-buttons {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-          margin-top: 30px;
-        }
-
-        .overlay-button {
-          padding: 12px 25px;
-          border: none;
-          border-radius: 4px;
-          font-size: 1rem;
-          font-weight: 400;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          min-width: 120px;
-        }
-
-        .overlay-button-primary {
-          background: #333333;
-          color: #ffffff;
-        }
-
-        .overlay-button-primary:hover {
-          background: #555555;
-        }
-
-        .overlay-button-secondary {
-          background: #ffffff;
-          color: #333333;
-          border: 1px solid #dddddd;
-        }
-
-        .overlay-button-secondary:hover {
-          background: #f0f0f0;
-        }
-
-        @keyframes overlayFadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes overlaySlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes titleBounce {
-          0%, 20%, 50%, 80%, 100% {
-            transform: translateY(0);
-          }
-          40% {
-            transform: translateY(-10px);
-          }
-          60% {
-            transform: translateY(-5px);
-          }
-        }
-
-        /* Mobile adjustments for overlay */
-        @media (max-width: 768px) {
-          .overlay-content {
-            padding: 30px 20px;
-            margin: 20px;
-          }
-
-          .overlay-title {
-            font-size: 3rem;
-          }
-
-          .overlay-subtitle {
-            font-size: 1.2rem;
-          }
-
-          .overlay-buttons {
-            flex-direction: column;
-            gap: 10px;
-          }
-        }
-
-        /* Enhanced Mobile-First Responsive Design */
-        @media (max-width: 480px) {
-          .game-wrapper {
-            padding: 5px;
-          }
-
-          .game-status h1 {
-            font-size: 2em !important;
-            margin: 0 0 10px 0;
-          }
-
-          .game-content {
-            gap: 10px;
-          }
-
-          .piece-gallery {
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 10px;
-            padding: 15px;
-          }
-
-          .draft-title {
-            font-size: 1.5em;
-            margin-bottom: 15px;
-          }
-
-          .players-info {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .player-info {
-            min-width: auto;
-          }
-
-          .scoring-rules {
-            font-size: 0.8em;
-            padding: 10px;
-            margin: 10px 0;
-          }
-
-          .scoring-rules h4 {
-            font-size: 1em;
-          }
-
-          .board {
-            width: min(350px, 95vw);
-            height: min(350px, 95vw);
-          }
-
-          .side-panel {
-            width: 100%;
-            order: 1;
-          }
-
-          .arsenal-pieces {
-            gap: 8px;
-          }
-
-          .score-display {
-            font-size: 0.9em;
-          }
-
-          .btn {
-            padding: 12px 16px !important;
-            font-size: 14px !important;
-            min-height: 44px;
-            touch-action: manipulation;
-          }
-
-          .piece-tile {
-            min-height: 80px !important;
-            padding: 12px !important;
-            font-size: 0.9em;
-          }
-
-          .draft-controls {
-            margin: 15px 0;
-          }
-
-          .pattern-visual {
-            padding: 4px;
-            margin: 2px 0;
-          }
-
-          .pattern-shape {
-            padding: 1px;
-          }
-
-          .pattern-cell {
-            width: 6px;
-            height: 6px;
-          }
-        }
-
-        /* Game Over Statistics */
-        .game-over-stats {
-          background: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          padding: 15px;
-          margin: 15px 0;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 15px;
-          margin-top: 10px;
-        }
-
-        .stat-item {
-          text-align: center;
-          padding: 10px;
-          background: white;
-          border-radius: 4px;
-          border: 1px solid #e9ecef;
-        }
-
-        /* Score Cards */
-        .score-cards-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin: 20px 0;
-        }
-
-        .score-card {
-          background: #ffffff;
-          border: 2px solid #dee2e6;
-          border-radius: 10px;
-          padding: 15px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .score-card-title {
-          text-align: center;
-          margin: 0 0 15px 0;
-          padding: 10px;
-          border-radius: 6px;
-          font-weight: bold;
-        }
-
-        .player1-title {
-          background: linear-gradient(135deg, #007bff, #0056b3);
-          color: white;
-        }
-
-        .player2-title {
-          background: linear-gradient(135deg, #dc3545, #b02a37);
-          color: white;
-        }
-
-        .score-breakdown {
-          margin-bottom: 15px;
-        }
-
-        .score-breakdown h5 {
-          margin: 0 0 8px 0;
-          color: #495057;
-          font-size: 0.9em;
-        }
-
-        .breakdown-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 4px 0;
-          border-bottom: 1px solid #f8f9fa;
-          font-size: 0.85em;
-        }
-
-        .breakdown-pattern {
-          color: #6c757d;
-          text-transform: capitalize;
-        }
-
-        .breakdown-points {
-          font-weight: bold;
-          color: #28a745;
-        }
-
-        .pattern-history {
-          max-height: 200px;
-          overflow-y: auto;
-        }
-
-        .pattern-history h5 {
-          margin: 0 0 8px 0;
-          color: #495057;
-          font-size: 0.9em;
-        }
-
-        .history-item {
-          background: #f8f9fa;
-          border-left: 3px solid #007bff;
-          padding: 6px 8px;
-          margin: 4px 0;
-          border-radius: 4px;
-          font-size: 0.8em;
-        }
-
-        .history-turn {
-          font-weight: bold;
-          color: #495057;
-        }
-
-        .history-pattern {
-          color: #6c757d;
-          margin: 0 5px;
-        }
-
-        .history-points {
-          color: #28a745;
-          font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-          .score-cards-container {
-            grid-template-columns: 1fr;
-            gap: 15px;
-          }
-        }
-
-        .stat-value {
-          font-size: 1.5em;
-          font-weight: bold;
-          color: #007bff;
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 0.8em;
-          color: #666;
-          text-transform: uppercase;
-        }
-
-        /* Tablet styles */
-        @media (min-width: 768px) and (max-width: 1024px) {
-          .game-wrapper {
-            padding: 16px;
-            max-width: 1000px;
-          }
-
-          .game-content {
-            flex-direction: row;
-            gap: 20px;
-            align-items: flex-start;
-          }
-
-          .board-section {
-            flex: 1;
-            max-width: 600px;
-          }
-
-          .board {
-            width: min(500px, 60vw);
-            height: min(500px, 60vw);
-          }
-
-          .side-panel {
-            width: 280px;
-            order: 0;
-          }
-
-          .arsenal-pieces {
-            gap: 12px;
-          }
-
-          .arsenal-miniature {
-            min-width: 70px;
-          }
-
-          .miniature-cell {
-            width: 10px;
-            height: 10px;
-          }
-
-          .miniature-grid {
-            gap: 1px;
-          }
-
-          .piece-gallery {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 15px;
-            padding: 25px;
-          }
-        }
-
-        /* Desktop styles */
-        @media (min-width: 1025px) {
-          .game-wrapper {
-            padding: 20px;
-            max-width: 1200px;
-          }
-
-          .game-status h1 {
-            font-size: 2.5em !important;
-          }
-
-          .game-content {
-            flex-direction: row;
-            gap: 24px;
-            align-items: flex-start;
-          }
-
-          .board-section {
-            flex: 1;
-            max-width: 700px;
-          }
-
-          .board {
-            width: min(600px, 50vw);
-            height: min(600px, 50vw);
-            border: 3px solid #2c3e50;
-          }
-
-          .side-panel {
-            width: 320px;
-            order: 0;
-          }
-
-          .arsenal-container {
-            margin-top: 20px;
-            padding: 16px;
-          }
-
-          .arsenal-pieces {
-            gap: 15px;
-            justify-content: flex-start;
-          }
-
-          .arsenal-miniature {
-            min-width: 80px;
-            padding: 10px;
-          }
-
-          .miniature-cell {
-            width: 12px;
-            height: 12px;
-          }
-
-          .miniature-grid {
-            gap: 1px;
-          }
-
-          .piece-name {
-            font-size: 0.8em;
-          }
-
-          .piece-count {
-            font-size: 0.75em;
-          }
-
-          .piece-gallery {
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            max-width: 1000px;
-          }
-
-          .piece-tile {
-            min-height: 80px;
-            font-size: 1em;
-          }
-
-          .btn {
-            padding: 10px 20px;
-            font-size: 16px;
-          }
-        }
-
-        /* Large desktop styles */
-        @media (min-width: 1440px) {
-          .game-wrapper {
-            max-width: 1400px;
-          }
-
-          .board-section {
-            max-width: 800px;
-          }
-
-          .board {
-            width: min(700px, 45vw);
-            height: min(700px, 45vw);
-          }
-
-          .side-panel {
-            width: 350px;
-          }
-
-          .arsenal-pieces {
-            gap: 18px;
-          }
-
-          .arsenal-miniature {
-            min-width: 90px;
-            padding: 12px;
-          }
-
-          .miniature-cell {
-            width: 14px;
-            height: 14px;
-          }
-        }
-      </style>
-    `
 
     this.renderGameStatus(wrapper)
     this.renderGameContent(wrapper)
@@ -1410,6 +110,9 @@ export class UI {
     const status = GameService.getStatus(this.gameState)
     const statusDiv = document.createElement('div')
     statusDiv.className = 'game-status'
+    statusDiv.setAttribute('role', 'status')
+    statusDiv.setAttribute('aria-live', 'polite')
+    statusDiv.setAttribute('aria-atomic', 'true')
 
     let statusText = ''
     if (status.phase === GAME_PHASES.DRAFT) {
@@ -1537,11 +240,16 @@ export class UI {
 
     container.appendChild(boardSection)
     container.appendChild(sidePanel)
+
+    // Add floating action buttons for mobile touch control
+    this.renderFloatingActionButtons()
   }
 
   renderBoard(container) {
     const board = this.gameState.board
     container.className = 'board'
+    container.setAttribute('role', 'grid')
+    container.setAttribute('aria-label', 'Game board')
     container.style.gridTemplateColumns = `repeat(${board.cols}, 1fr)`
     container.style.gridTemplateRows = `repeat(${board.rows}, 1fr)`
     container.innerHTML = ''
@@ -1551,10 +259,24 @@ export class UI {
       for (let x = 0; x < board.cols; x++) {
         const cell = document.createElement('div')
         cell.className = 'cell'
+        cell.setAttribute('role', 'gridcell')
         cell.dataset.x = x
         cell.dataset.y = y
 
         const cellValue = board.grid[y][x]
+
+        // Accessibility label for cell
+        let cellLabel = `Cell ${x}, ${y}`
+        if (cellValue === -1) {
+          cellLabel += ', unusable'
+        } else if (cellValue === 1) {
+          cellLabel += ', occupied by Player 1'
+        } else if (cellValue === 2) {
+          cellLabel += ', occupied by Player 2'
+        } else {
+          cellLabel += ', empty'
+        }
+        cell.setAttribute('aria-label', cellLabel)
 
         // Check if cell is unusable (marked as -1)
         if (cellValue === -1) {
@@ -1682,11 +404,17 @@ export class UI {
     const arsenal = this.gameState.players[currentPlayer].arsenal
 
     container.innerHTML = ''
+    container.setAttribute('role', 'list')
+    container.setAttribute('aria-label', 'Available game pieces')
 
     for (const [pieceId, count] of Object.entries(arsenal)) {
       if (count > 0) {
         const miniature = document.createElement('div')
         miniature.className = `arsenal-miniature ${this.selectedPiece === pieceId ? 'selected' : ''}`
+        miniature.setAttribute('role', 'button')
+        miniature.setAttribute('aria-label', `Select ${pieceId} piece, ${count} remaining`)
+        miniature.setAttribute('aria-pressed', this.selectedPiece === pieceId ? 'true' : 'false')
+        miniature.setAttribute('tabindex', '0')
         const piece = pieceLibrary.get(pieceId)
 
         miniature.innerHTML = `
@@ -1747,6 +475,120 @@ export class UI {
     </div>`
 
     container.innerHTML = controlsHTML
+  }
+
+  /**
+   * Render floating action buttons for mobile touch control
+   * These buttons appear when a piece is selected on mobile devices
+   */
+  renderFloatingActionButtons() {
+    // Remove existing FABs if any
+    const existingFabs = document.querySelector('.floating-action-buttons')
+    if (existingFabs) {
+      existingFabs.remove()
+    }
+
+    // Only show FABs on mobile/tablet and when a piece is selected
+    if (this.selectedPiece && this.gameState.phase === 'placement') {
+      const fabContainer = document.createElement('div')
+      fabContainer.className = `floating-action-buttons ${this.selectedPiece ? 'active' : ''}`
+      fabContainer.setAttribute('role', 'toolbar')
+      fabContainer.setAttribute('aria-label', 'Piece transformation controls')
+
+      fabContainer.innerHTML = `
+        <button class="fab rotate" onclick="window.ui.rotatePiece()" aria-label="Rotate piece (R key)">
+          ↻
+        </button>
+        <button class="fab flip" onclick="window.ui.flipPiece()" aria-label="Flip piece (F key)">
+          ⇄
+        </button>
+        <button class="fab cancel" onclick="window.ui.clearSelection()" aria-label="Cancel selection (Esc key)">
+          ✕
+        </button>
+      `
+
+      document.body.appendChild(fabContainer)
+    }
+  }
+
+  /**
+   * Show A2HS (Add to Home Screen) banner
+   */
+  showA2HSBanner() {
+    // Don't show if already dismissed or already installed
+    if (localStorage.getItem('a2hs-dismissed') === 'true') return
+    if (window.matchMedia('(display-mode: standalone)').matches) return
+
+    const banner = document.createElement('div')
+    banner.className = 'a2hs-banner'
+    banner.setAttribute('role', 'dialog')
+    banner.setAttribute('aria-label', 'Install app prompt')
+    banner.innerHTML = `
+      <div class="a2hs-content">
+        <div class="a2hs-title">Install SumZero</div>
+        <div class="a2hs-description">Add to your home screen for quick access!</div>
+      </div>
+      <div class="a2hs-actions">
+        <button class="a2hs-button a2hs-install" onclick="window.ui.installA2HS()">Install</button>
+        <button class="a2hs-button a2hs-dismiss" onclick="window.ui.dismissA2HS()">Maybe Later</button>
+      </div>
+    `
+    document.body.appendChild(banner)
+  }
+
+  /**
+   * Install PWA via A2HS prompt
+   */
+  installA2HS() {
+    if (!this.deferredA2HSPrompt) return
+
+    this.deferredA2HSPrompt.prompt()
+    this.deferredA2HSPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the A2HS prompt')
+      }
+      this.deferredA2HSPrompt = null
+      this.dismissA2HS()
+    })
+  }
+
+  /**
+   * Dismiss A2HS banner
+   */
+  dismissA2HS() {
+    const banner = document.querySelector('.a2hs-banner')
+    if (banner) {
+      banner.remove()
+      localStorage.setItem('a2hs-dismissed', 'true')
+    }
+  }
+
+  /**
+   * Show loading overlay during AI moves
+   */
+  showLoadingSpinner(message = 'AI is thinking...') {
+    // Remove existing spinner if any
+    this.hideLoadingSpinner()
+
+    const overlay = document.createElement('div')
+    overlay.className = 'loading-overlay'
+    overlay.setAttribute('role', 'status')
+    overlay.setAttribute('aria-live', 'polite')
+    overlay.innerHTML = `
+      <div class="loading-spinner"></div>
+      <div class="loading-text" aria-label="${message}">${message}</div>
+    `
+    document.body.appendChild(overlay)
+  }
+
+  /**
+   * Hide loading overlay
+   */
+  hideLoadingSpinner() {
+    const overlay = document.querySelector('.loading-overlay')
+    if (overlay) {
+      overlay.remove()
+    }
   }
 
   // Event handlers
@@ -1885,6 +727,9 @@ export class UI {
     if (isAITurn && notGameOver && !this.aiThinking) {
       this.aiThinking = true
 
+      // Show loading spinner
+      this.showLoadingSpinner('AI is thinking...')
+
       setTimeout(() => {
         this.makeAIMove()
       }, SimpleAI.getActionDelay())
@@ -1905,6 +750,8 @@ export class UI {
       console.error('AI move error:', error)
     } finally {
       this.aiThinking = false
+      // Hide loading spinner
+      this.hideLoadingSpinner()
     }
   }
 
